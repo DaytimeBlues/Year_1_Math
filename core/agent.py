@@ -2,6 +2,10 @@
 Pedagogical Agent - Text-to-Speech + Growth Mindset Feedback
 Combines audio output with educational feedback logic.
 
+VOICE OPTIONS:
+- edge-tts: Microsoft Neural voices (natural, requires internet)
+- pyttsx3: Windows SAPI voices (robotic, works offline)
+
 PEDAGOGICAL FOUNDATION:
 Based on Carol Dweck's Growth Mindset research (Stanford University):
 - Praise EFFORT, not intelligence
@@ -14,11 +18,26 @@ Also implements Vygotsky's Zone of Proximal Development:
 """
 
 import random
-import pyttsx3
+import asyncio
+import tempfile
+import os
+import subprocess
 from threading import Thread
 import sys
 sys.path.append('..')
-from config import FEEDBACK, MAX_ATTEMPTS_BEFORE_SCAFFOLDING
+from config import FEEDBACK, MAX_ATTEMPTS_BEFORE_SCAFFOLDING, VOICE_TYPE, VOICE_NAME
+
+# Conditional imports based on voice type
+EDGE_TTS_AVAILABLE = False
+if VOICE_TYPE == 'edge-tts':
+    try:
+        import edge_tts
+        EDGE_TTS_AVAILABLE = True
+    except ImportError:
+        print("[Agent] edge-tts not installed, falling back to pyttsx3")
+
+if not EDGE_TTS_AVAILABLE:
+    import pyttsx3
 
 
 class PedagogicalAgent:
@@ -36,17 +55,20 @@ class PedagogicalAgent:
         self.attempt_count = 0
         self.consecutive_errors = 0
         
-        # Initialize TTS engine
-        self.engine = pyttsx3.init()
-        self._configure_voice()
+        # Initialize TTS engine based on config
+        if EDGE_TTS_AVAILABLE:
+            self.voice_type = 'edge-tts'
+            self.voice_name = VOICE_NAME
+            self._temp_audio_file = os.path.join(tempfile.gettempdir(), "math_omni_speech.mp3")
+        else:
+            self.voice_type = 'pyttsx3'
+            self.engine = pyttsx3.init()
+            self._configure_pyttsx3_voice()
     
-    def _configure_voice(self):
+    def _configure_pyttsx3_voice(self):
         """
-        Configure voice for optimal child engagement.
-        
-        VOICE SELECTION:
-        - Slower rate for processing time
-        - Attempt to select friendly-sounding voice
+        Configure pyttsx3 voice for optimal child engagement.
+        Fallback when edge-tts is unavailable.
         """
         # Reduce speech rate (150 wpm for clarity)
         self.engine.setProperty('rate', 150)
@@ -54,7 +76,7 @@ class PedagogicalAgent:
         # Try to select a friendly voice
         voices = self.engine.getProperty('voices')
         for voice in voices:
-            # Prefer female voices (ZIra on Windows)
+            # Prefer female voices (Zira on Windows)
             if 'zira' in voice.name.lower() or 'female' in voice.name.lower():
                 self.engine.setProperty('voice', voice.id)
                 break
@@ -77,12 +99,57 @@ class PedagogicalAgent:
     
     def _speak_sync(self, text: str):
         """Internal synchronous speech method."""
-        self.engine.say(text)
-        self.engine.runAndWait()
+        if self.voice_type == 'edge-tts':
+            self._speak_edge_tts(text)
+        else:
+            self.engine.say(text)
+            self.engine.runAndWait()
+    
+    def _speak_edge_tts(self, text: str):
+        """Generate and play speech using edge-tts."""
+        async def generate_audio():
+            communicate = edge_tts.Communicate(text, self.voice_name)
+            await communicate.save(self._temp_audio_file)
+        
+        # Generate the audio file
+        try:
+            asyncio.run(generate_audio())
+            
+            # Play using Windows Media Player (works without external dependencies)
+            # Use powershell to play the mp3 file
+            subprocess.run(
+                ['powershell', '-c', 
+                 f'(New-Object Media.SoundPlayer "{self._temp_audio_file}").PlaySync()'],
+                capture_output=True,
+                timeout=30
+            )
+        except Exception as e:
+            print(f"[Agent] edge-tts playback error: {e}")
+            # Try alternative: use Windows Media.MediaPlayer for mp3
+            try:
+                subprocess.run(
+                    ['powershell', '-c', 
+                     f'Add-Type -AssemblyName presentationCore; ' +
+                     f'$player = New-Object System.Windows.Media.MediaPlayer; ' +
+                     f'$player.Open("{self._temp_audio_file}"); ' +
+                     f'$player.Play(); Start-Sleep -Seconds 5'],
+                    capture_output=True,
+                    timeout=30
+                )
+            except Exception as e2:
+                print(f"[Agent] Fallback playback also failed: {e2}")
+        
+        # Cleanup temp file
+        if self._temp_audio_file and os.path.exists(self._temp_audio_file):
+            try:
+                os.remove(self._temp_audio_file)
+            except OSError:
+                pass  # OS still has a handle on it, just ignore
     
     def stop(self):
         """Stop any currently playing speech."""
-        self.engine.stop()
+        if self.voice_type != 'edge-tts':
+            self.engine.stop()
     
     def reset_for_new_problem(self):
         """

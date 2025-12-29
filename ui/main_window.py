@@ -27,7 +27,10 @@ from core.agent import PedagogicalAgent
 from core.gemini_tutor import GeminiTutor
 import sys
 sys.path.append('..')
-from config import COLORS, FONT_SIZES, MIN_TOUCH_TARGET, TIMING
+from config import (
+    COLORS, FONT_SIZES, MIN_TOUCH_TARGET, TIMING,
+    MAX_ATTEMPTS_BEFORE_SCAFFOLDING, MAX_DRAWING_PASSES, ITEMS
+)
 
 # Confusion threshold: if child draws this many more strokes than expected,
 # escalate to cloud AI for contextual help
@@ -66,9 +69,15 @@ class MainWindow(QMainWindow):
         self.progress = ProgressTracker()
         self.progress.start_session()
         
+        # Select random item for this session
+        self.current_item = random.choice(ITEMS)
+        
         # Problem state
         self.current_answer = 3  # Default for demo
-        self.current_question = "Draw 3 items"
+        self.current_item_name = self.current_item["name"]
+        self.current_item_emoji = self.current_item["emoji"]
+        self.current_question = f"Draw {self.current_answer} {self.current_item_name} {self.current_item_emoji}"
+        self.drawing_passes = 0  # Track wrong attempts for canvas clear
         
         # Setup window
         self.setWindowTitle("Math Omni - Foundation Year")
@@ -143,10 +152,17 @@ class MainWindow(QMainWindow):
         self.question_label.setStyleSheet("color: #2c3e50; padding: 20px;")
         
         # --- Visual Hint (e.g., emoji apples) ---
-        self.hint_label = QLabel("🍎 🍎 🍎")
+        hint_emojis = f"{self.current_item_emoji} " * self.current_answer
+        self.hint_label = QLabel(hint_emojis.strip())
         self.hint_label.setFont(QFont("Segoe UI Emoji", 48))
         self.hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hint_label.setStyleSheet("padding: 20px;")
+        
+        # --- Instruction hint ---
+        self.instruction_label = QLabel(f"✏️ Draw one for each {self.current_item_name[:-1] if self.current_item_name.endswith('s') else self.current_item_name} you see!")
+        self.instruction_label.setFont(QFont("Segoe UI", 14))
+        self.instruction_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.instruction_label.setStyleSheet("color: #7f8c8d; padding: 10px;")
         
         # --- Feedback Display ---
         self.feedback_label = QLabel("")
@@ -233,6 +249,7 @@ class MainWindow(QMainWindow):
         # Assemble layout
         layout.addWidget(self.question_label)
         layout.addWidget(self.hint_label)
+        layout.addWidget(self.instruction_label)
         layout.addStretch(1)
         layout.addWidget(self.feedback_label)
         layout.addLayout(button_layout)
@@ -262,7 +279,7 @@ class MainWindow(QMainWindow):
         presenting any mathematical content.
         """
         self.agent.speak(
-            f"Hello! Welcome to Math Omni! Can you draw {self.current_answer} things for me?"
+            f"Hello! Welcome to Math Omni! Can you draw {self.current_answer} {self.current_item_name} on the white space?"
         )
     
     def _on_stroke_completed(self):
@@ -317,10 +334,20 @@ class MainWindow(QMainWindow):
         self.progress.record_attempt(is_correct)
         
         if is_correct:
+            self.drawing_passes = 0
             self._celebrate()
-        elif self.agent.should_offer_scaffolding():
-            # Schedule scaffolding after main feedback
-            QTimer.singleShot(2500, self._offer_scaffolding)
+        else:
+            self.drawing_passes += 1
+            
+            # Staggered triggers: fresh canvas takes priority over scaffolding
+            needs_fresh_canvas = (self.drawing_passes >= MAX_DRAWING_PASSES)
+            needs_scaffolding = (self.agent.consecutive_errors >= MAX_ATTEMPTS_BEFORE_SCAFFOLDING)
+            
+            if needs_fresh_canvas:
+                QTimer.singleShot(1500, self._offer_fresh_canvas)
+            elif needs_scaffolding:
+                # Only offer scaffolding if we AREN'T clearing the canvas
+                QTimer.singleShot(2500, self._offer_scaffolding)
     
     def _celebrate(self):
         """
@@ -338,6 +365,19 @@ class MainWindow(QMainWindow):
         self.feedback_label.setText(scaffold)
         self.agent.speak(scaffold)
     
+    def _offer_fresh_canvas(self):
+        """Provide a fresh canvas after multiple drawing passes."""
+        self._clear_canvas("Let's try again on a fresh canvas!")
+    
+    def _clear_canvas(self, message: str):
+        """Reset the scratchpad with a gentle, encouraging message."""
+        self.scratchpad.clear()
+        self.drawing_passes = 0
+        self.agent.reset_for_new_problem()  # Prevents immediate scaffolding on fresh canvas
+        self.feedback_label.setText(message)
+        self.feedback_label.setStyleSheet("color: #7f8c8d; padding: 15px;")
+        self.agent.speak(message)
+    
     def _on_clear(self):
         """
         Clear the scratchpad.
@@ -345,10 +385,7 @@ class MainWindow(QMainWindow):
         Fresh start should feel like getting new paper,
         not having work erased punitively.
         """
-        self.scratchpad.clear()
-        self.feedback_label.setText("")
-        self.feedback_label.setStyleSheet("color: #7f8c8d; padding: 15px;")
-        self.agent.speak("Here's a fresh space for you!")
+        self._clear_canvas("Here's a fresh space for you!")
     
     def _on_help(self):
         """
@@ -467,5 +504,6 @@ class MainWindow(QMainWindow):
         self.feedback_label.setText("")
         
         self.scratchpad.clear()
+        self.drawing_passes = 0
         self.agent.reset_for_new_problem()
 

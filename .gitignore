@@ -27,3 +27,7 @@ ENV/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Project specific
+data/
+cache/
