@@ -51,6 +51,10 @@ class ActivityView(QWidget):
         self._debounce_timer.timeout.connect(self._unlock_interaction)
         
         self._build_ui()
+        
+        # Z.ai Fix: Skip overlay for tap-to-skip during blocked states
+        # Import here to avoid circular dependency
+        self._skip_overlay = SkipOverlay(self, self.director)
     
     def _build_ui(self):
         """Construct the activity UI."""
@@ -257,22 +261,24 @@ class ActivityView(QWidget):
     def _on_state_change(self, state: AppState):
         """
         React to global state changes.
-        CRITICAL: This prevents 'ghost touches' while AI is thinking/speaking.
+        
+        Z.ai Fix: Use SkipOverlay instead of setEnabled(False) to allow tap-to-skip.
         """
         if state == AppState.INPUT_ACTIVE:
-            self._set_ui_interactive(True)
+            self._skip_overlay.hide()
+            self._set_buttons_enabled(True)
         elif state in (AppState.EVALUATING, AppState.TUTOR_SPEAKING, AppState.CELEBRATION):
-            # IMMEDIATELY LOCK
-            self._set_ui_interactive(False)
+            # Show skip overlay (catches taps without blocking them entirely)
+            self._skip_overlay.show()
+            self._set_buttons_enabled(False)
         elif state == AppState.IDLE:
-            self._set_ui_interactive(False)
+            self._skip_overlay.hide()
+            self._set_buttons_enabled(False)
 
-    def _set_ui_interactive(self, enabled: bool):
-        """
-        Physically disable input.
-        """
-        self.setEnabled(enabled)
-        # Visual feedback for disabled state could go here (e.g. grayscale)
+    def _set_buttons_enabled(self, enabled: bool):
+        """Enable/disable answer buttons without disabling entire widget."""
+        for btn in self.option_buttons:
+            btn.setEnabled(enabled)
 
     def show_visual_hint(self, hint_name: str):
         """
@@ -282,3 +288,48 @@ class ActivityView(QWidget):
         # TODO: Implement visual hints based on hint_name
         # Examples: "pulse_correct_area", "highlight_groups", "arrow_following"
         print(f"[ActivityView] Visual Hint: {hint_name}")
+
+
+class SkipOverlay(QWidget):
+    """
+    Transparent overlay that catches taps during TUTOR_SPEAKING/CELEBRATION.
+    
+    Z.ai Solution: Instead of using setEnabled(False) which blocks ALL input
+    including "tap to skip", this overlay allows tap-to-skip while preventing
+    interaction with underlying buttons.
+    """
+    
+    clicked = pyqtSignal()
+    
+    def __init__(self, parent, director):
+        super().__init__(parent)
+        self.director = director
+        
+        # Transparent but catches events
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
+        
+        # Cover entire parent
+        self.resize(parent.size())
+        self.hide()
+        
+        # Connect to director for skip
+        self.clicked.connect(self._on_skip_requested)
+    
+    def _on_skip_requested(self):
+        """Handle tap-to-skip."""
+        self.director.force_skip()
+        
+        # Also stop any playing audio
+        if hasattr(self.parent(), 'audio') and self.parent().audio:
+            self.parent().audio.stop_voice()
+    
+    def mousePressEvent(self, event):
+        """Catch all mouse presses and emit skip signal."""
+        self.clicked.emit()
+        event.accept()
+    
+    def resizeEvent(self, event):
+        """Stay same size as parent."""
+        if self.parent():
+            self.resize(self.parent().size())
