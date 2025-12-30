@@ -27,6 +27,7 @@ from core.audio_service import AudioService
 from core.problem_factory import ProblemFactory
 from ui.game_manager import GameManager
 from core.utils import safe_create_task
+from core.container import ServiceContainer
 
 
 def create_stylesheet() -> str:
@@ -77,19 +78,24 @@ def main():
     # FIX: Apply dynamic stylesheet from config
     app.setStyleSheet(create_stylesheet())
     
-    # Create services
-    db = DatabaseService()
-    audio = AudioService()
-    factory = ProblemFactory()
-
-    # Create window
-    window = GameManager(db, audio, factory)
+    # --- Phase 2: Service Container ---
+    # Create services instances
+    db_service = DatabaseService()
+    audio_service = AudioService()
+    
+    container = ServiceContainer()
+    container.register(DatabaseService, db_service)
+    container.register(AudioService, audio_service)
+    container.register(ProblemFactory, ProblemFactory()) # Factory doesn't need init args yet
+    
+    # Init Game Manager with Container
+    window = GameManager(container)
     window.show()
     
     # FIX: Z.ai - Use public method instead of protected _welcome
     async def init_async():
         try:
-            await db.initialize()
+            await db_service.initialize()
             await window.start_application()
         except Exception as e:
             # FIX: Z.ai, ChatGPT - Error handling with user dialog
@@ -108,8 +114,8 @@ def main():
     # FIX: ChatGPT - Lifecycle cleanup on quit
     async def cleanup():
         try:
-            await db.close()
-            await audio.cleanup()
+            await db_service.close()
+            await audio_service.cleanup()
         except Exception as e:
             print(f"[main] Cleanup error: {e}")
     

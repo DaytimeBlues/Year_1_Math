@@ -16,6 +16,8 @@ from config import (
     FONT_FAMILY, FONT_SIZE_BODY, FONT_SIZE_HEADING, COLORS
 )
 from ui.components import JuicyButton, JuicyLabel
+from core.sfx import SFX
+from core.director import AppState
 
 
 class ActivityView(QWidget):
@@ -33,11 +35,17 @@ class ActivityView(QWidget):
     answer_submitted = pyqtSignal(bool)  # True = correct
     back_to_map = pyqtSignal()
     
-    def __init__(self, audio_service=None):
+    
+    def __init__(self, director, audio_service=None):
         super().__init__()
+        self.director = director
         self.audio = audio_service
         self._correct_answer = None
         self._interaction_locked = False
+        
+        # Connect to Director
+        self.director.state_changed.connect(self._on_state_change)
+        
         self._debounce_timer = QTimer()
         self._debounce_timer.setSingleShot(True)
         self._debounce_timer.timeout.connect(self._unlock_interaction)
@@ -56,7 +64,7 @@ class ActivityView(QWidget):
         header = QHBoxLayout()
         
         # Back Button with Click Sound
-        back_btn = JuicyButton("← Map", self.audio, "click")
+        back_btn = JuicyButton("← Map", self.audio, SFX.CLICK)
         back_btn.setFont(QFont(FONT_FAMILY, 16))
         back_btn.setFixedSize(100, 50)
         back_btn.setStyleSheet(f"""
@@ -113,7 +121,7 @@ class ActivityView(QWidget):
             # So let's use 'click' for immediate feedback, then overlay correct/wrong.
             # actually better: play NO sound here, and play result sound in handler?
             # User requested immediate tactile. "Click" is good for touch registration.
-            btn = JuicyButton("?", self.audio, "click") 
+            btn = JuicyButton("?", self.audio, SFX.CLICK) 
             btn.setFixedSize(MIN_TOUCH_TARGET, MIN_TOUCH_TARGET)
             btn.setFont(QFont(FONT_FAMILY, 28, QFont.Weight.Bold))
             btn.setStyleSheet(self._option_style())
@@ -213,7 +221,7 @@ class ActivityView(QWidget):
         correct = (value == self._correct_answer)
         
         if correct:
-            if self.audio: self.audio.play_sfx("correct")
+            if self.audio: self.audio.play_sfx(SFX.SUCCESS)
             button.setStyleSheet(self._option_style("correct"))
             self.feedback_label.setText("🎉 Correct!")
             self.feedback_label.setStyleSheet(f"color: {COLORS['success']}; font-weight: bold;")
@@ -221,7 +229,7 @@ class ActivityView(QWidget):
             for btn in self._option_buttons:
                 btn.setEnabled(False)
         else:
-            if self.audio: self.audio.play_sfx("wrong")
+            if self.audio: self.audio.play_sfx(SFX.ERROR)
             button.setStyleSheet(self._option_style("incorrect"))
             self.feedback_label.setText("Oops! Try again.")
             self.feedback_label.setStyleSheet(f"color: {COLORS['danger']};")
@@ -241,7 +249,36 @@ class ActivityView(QWidget):
     
     def show_reward(self, earned: int, total: int):
         """Display reward earned."""
-        if self.audio: self.audio.play_sfx("win")
+        if self.audio: self.audio.play_sfx(SFX.LEVEL_COMPLETE)
         self.egg_label.setText(f"🥚 {total}")
         self.egg_label.pop() # Trigger Animation
         self.feedback_label.setText(f"🎉 +{earned} eggs!")
+
+    def _on_state_change(self, state: AppState):
+        """
+        React to global state changes.
+        CRITICAL: This prevents 'ghost touches' while AI is thinking/speaking.
+        """
+        if state == AppState.INPUT_ACTIVE:
+            self._set_ui_interactive(True)
+        elif state in (AppState.EVALUATING, AppState.TUTOR_SPEAKING, AppState.CELEBRATION):
+            # IMMEDIATELY LOCK
+            self._set_ui_interactive(False)
+        elif state == AppState.IDLE:
+            self._set_ui_interactive(False)
+
+    def _set_ui_interactive(self, enabled: bool):
+        """
+        Physically disable input.
+        """
+        self.setEnabled(enabled)
+        # Visual feedback for disabled state could go here (e.g. grayscale)
+
+    def show_visual_hint(self, hint_name: str):
+        """
+        Display a visual hint (e.g., pulsing animation on correct area).
+        Stub for now - to be implemented with animations.
+        """
+        # TODO: Implement visual hints based on hint_name
+        # Examples: "pulse_correct_area", "highlight_groups", "arrow_following"
+        print(f"[ActivityView] Visual Hint: {hint_name}")

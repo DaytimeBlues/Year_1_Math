@@ -11,53 +11,63 @@ FIXES APPLIED (AI Review):
 """
 
 import asyncio
-from PyQt6.QtWidgets import QMainWindow, QStackedWidget
-from PyQt6.QtCore import QTimer
-
+from core.database import DatabaseService
+from core.audio_service import AudioService
+from core.problem_factory import ProblemFactory
 from config import MAP_LEVELS_COUNT, REWARD_CORRECT, REWARD_COMPLETION
 from ui.map_view import MapView
 from ui.activity_view import ActivityView
 from ui.celebration import CelebrationOverlay
 from core.utils import safe_create_task
+from core.sfx import SFX
+from PyQt6.QtWidgets import QMainWindow, QStackedWidget
+from PyQt6.QtCore import QTimer
 
+from core.container import ServiceContainer
+from core.director import Director, AppState
+from core.hint_engine import RuleBasedHintEngine
 
 class GameManager(QMainWindow):
     """
     Main game controller using QStackedWidget for view switching.
-    
-    FLOW:
-    1. Start → MapView (select level)
-    2. MapView → ActivityView (answer questions)
-    3. Correct Answer → Reward → MapView
+    Managed by 'Director' state machine.
     """
     
-    def __init__(self, db, audio, factory):
+    def __init__(self, container: ServiceContainer):
         super().__init__()
         self.setWindowTitle("Math Omni v2 🥚")
         self.setMinimumSize(1280, 800)
         
-        # Services (injected)
-        self.db = db
-        self.audio = audio
-        self.factory = factory
+        # Core Infrastructure
+        self.container = container
+        self.director = Director(container)
+        
+        # Resolve Services
+        self.db = container.resolve(DatabaseService)
+        self.audio = container.resolve(AudioService)
+        self.factory = container.resolve(ProblemFactory)
         
         # State
         self.current_level = None
         self.current_eggs = 0
         self._initialized = False
+        self._wrong_attempts = 0
+        
+        # Hint Engine (Rule-Based, No AI)
+        self.hint_engine = RuleBasedHintEngine()
         
         # UI Stack
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
         
-        # Create views
-        self.map_view = MapView(db)
-        self.activity_view = ActivityView(audio) # Pass audio to activity
+        # Create views (Inject Director)
+        self.map_view = MapView(self.db) # Map doesn't strictly need director yet, but good practice later
+        self.activity_view = ActivityView(self.director, self.audio) 
         
         self.stack.addWidget(self.map_view)
         self.stack.addWidget(self.activity_view)
         
-        # Celebration Overlay (Child of Window, top Z-order)
+        # Celebration Overlay
         self.celebration = CelebrationOverlay(self)
         
         # Connect signals
@@ -67,6 +77,9 @@ class GameManager(QMainWindow):
         
         # Start at map
         self.stack.setCurrentWidget(self.map_view)
+        
+        # Initialize state
+        self.director.set_state(AppState.IDLE)
 
     def resizeEvent(self, event):
         """Ensure overlay covers entire window on resize."""
@@ -100,6 +113,7 @@ class GameManager(QMainWindow):
     def _start_level(self, level: int):
         """Start a level - generate problem and show activity view."""
         self.current_level = level
+        self._wrong_attempts = 0  # Reset hints for new level
         
         # Generate problem (0-indexed)
         data = self.factory.generate(level - 1)
@@ -126,8 +140,19 @@ class GameManager(QMainWindow):
     def _process_answer(self, correct: bool):
         """Handle answer submission."""
         if not correct:
+            self._wrong_attempts += 1
+            self.audio.play_sfx(SFX.ERROR)
             self.activity_view.reset_interaction()
-            safe_create_task(self.audio.speak("Let's try again!"))
+            
+            # Get hint from engine based on attempt count
+            hint = self.hint_engine.get_hint("counting", self._wrong_attempts)
+            if hint and hint.hint_type == "audio" and hint.message:
+                safe_create_task(self.audio.speak(hint.message))
+            elif hint and hint.hint_type == "visual":
+                # Visual hints handled by ActivityView (pulse, highlight)
+                self.activity_view.show_visual_hint(hint.name)
+            else:
+                safe_create_task(self.audio.speak("Let's try again!"))
             return
         
         # Success - run async handler
@@ -143,6 +168,7 @@ class GameManager(QMainWindow):
         await self.db.unlock_level(self.current_level)
         
         # 3. Audio & Celebration
+        self.audio.play_sfx(SFX.SUCCESS)
         await self.audio.speak("Great job!")
         self.celebration.start(f"LEVEL {self.current_level} COMPLETE!")
         
