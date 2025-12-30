@@ -277,7 +277,7 @@ class ActivityView(QWidget):
 
     def _set_buttons_enabled(self, enabled: bool):
         """Enable/disable answer buttons without disabling entire widget."""
-        for btn in self.option_buttons:
+        for btn in self._option_buttons:
             btn.setEnabled(enabled)
 
     def show_visual_hint(self, hint_name: str):

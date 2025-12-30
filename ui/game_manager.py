@@ -25,6 +25,7 @@ from core.hint_engine import RuleBasedHintEngine
 from core.problem_factory import ProblemFactory
 from core.sfx import SFX
 from core.utils import safe_create_task
+from core.personalized_audio import PersonalizedAudio
 from ui.activity_view import ActivityView
 from ui.celebration import CelebrationOverlay
 from ui.map_view import MapView
@@ -58,6 +59,9 @@ class GameManager(QMainWindow):
         
         # Hint Engine (Rule-Based, No AI)
         self.hint_engine = RuleBasedHintEngine()
+        
+        # Personalized Audio (pre-generated clips for Aurelia)
+        self.personalized = PersonalizedAudio()
         
         # UI Stack
         self.stack = QStackedWidget()
@@ -110,7 +114,14 @@ class GameManager(QMainWindow):
         self.current_eggs = await self.db.get_eggs()
         await self.map_view.refresh(self.current_eggs)
         self.director.set_state(AppState.TUTOR_SPEAKING)
-        await self.audio.speak("Welcome to Math Omni! Let's count together!")
+        
+        # Use personalized greeting if available
+        if self.personalized.has_clip("welcome"):
+            self.personalized.play("welcome")
+            await asyncio.sleep(2.5)  # Wait for clip to finish
+        else:
+            await self.audio.speak("Welcome to Math Omni! Let's count together!")
+        
         self.director.set_state(AppState.IDLE)
     
     def _start_level(self, level: int):
@@ -174,7 +185,14 @@ class GameManager(QMainWindow):
         # 3. Audio & Celebration
         self.audio.play_sfx(SFX.SUCCESS)
         self.director.set_state(AppState.TUTOR_SPEAKING)
-        await self.audio.speak("Great job!")
+        
+        # Use personalized success clip if available
+        if self.personalized.has_clip("great_job"):
+            self.personalized.play_random_success()
+            await asyncio.sleep(1.5)  # Wait for clip
+        else:
+            await self.audio.speak("Great job!")
+        
         self.director.set_state(AppState.CELEBRATION)
         self.celebration.start(f"LEVEL {self.current_level} COMPLETE!")
         
