@@ -9,7 +9,6 @@ Categories:
 - level_*, celebration_*, farewell, numbers, items_*
 """
 
-import importlib.util
 import random
 import yaml
 import hashlib
@@ -21,7 +20,7 @@ from PyQt6.QtCore import QUrl
 
 
 SCRIPT_DIR = Path(__file__).parent.parent
-VOICE_BANK_DIR = SCRIPT_DIR / "assets" / "audio" / "voice_bank"
+VOICE_BANK_DIR = SCRIPT_DIR / "assets" / "audio" / "voice_bank_wav"
 VOICE_BANK_YAML = SCRIPT_DIR / "assets" / "voice_bank.yaml"
 DEFAULT_DURATION = 2.5
 
@@ -30,7 +29,7 @@ def phrase_to_filename(category: str, index: int, text: str) -> str:
     """Generate consistent filename matching the generator."""
     text_hash = hashlib.md5(text.encode()).hexdigest()[:8]
     clean_cat = category.replace("_", "-")
-    return f"{clean_cat}_{index:02d}_{text_hash}.mp3"
+    return f"{clean_cat}_{index:02d}_{text_hash}.wav"
 
 
 class VoiceBank:
@@ -83,18 +82,16 @@ class VoiceBank:
         print(f"[VoiceBank] Loaded {available}/{total} phrases")
 
     def _get_duration(self, audio_path: Path) -> float:
-        """Best-effort duration lookup to drive accurate sleep timing."""
+        """Read WAV file duration from header."""
         if not audio_path.exists():
             return 0.0
 
-        if importlib.util.find_spec("mutagen.mp3") is None:
-            return DEFAULT_DURATION
-
-        from mutagen.mp3 import MP3  # type: ignore
-
+        import wave
         try:
-            info = MP3(audio_path)
-            return float(info.info.length)
+            with wave.open(str(audio_path), 'rb') as wav:
+                frames = wav.getnframes()
+                rate = wav.getframerate()
+                return frames / float(rate)
         except Exception:
             return DEFAULT_DURATION
     
