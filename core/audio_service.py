@@ -102,6 +102,12 @@ class AudioService(QObject):
             self.music_player.setLoops(QMediaPlayer.Loops.Infinite)
         self.music_player.play()
 
+    def stop_voice(self) -> None:
+        """Stop voice playback (stub for VoiceBank compatibility)."""
+        # Voice is handled by VoiceBank, not AudioService
+        # This method exists for interface compatibility
+        pass
+
     def stop_music(self) -> None:
         """Stop background music."""
         self.music_player.stop()
