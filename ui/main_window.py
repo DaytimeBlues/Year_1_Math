@@ -25,8 +25,6 @@ import os
 from ui.scratchpad import Scratchpad
 from core.agent import PedagogicalAgent
 from core.gemini_tutor import GeminiTutor
-import sys
-sys.path.append('..')
 from config import (
     COLORS, FONT_SIZES, MIN_TOUCH_TARGET, TIMING,
     MAX_ATTEMPTS_BEFORE_SCAFFOLDING, MAX_DRAWING_PASSES, ITEMS

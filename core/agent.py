@@ -23,8 +23,6 @@ import tempfile
 import os
 import subprocess
 from threading import Thread
-import sys
-sys.path.append('..')
 from config import FEEDBACK, MAX_ATTEMPTS_BEFORE_SCAFFOLDING, VOICE_TYPE, VOICE_NAME
 
 # Conditional imports based on voice type

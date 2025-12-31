@@ -19,8 +19,7 @@ from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QTimer
 from PyQt6.QtGui import QPainter, QPen, QColor, QPainterPath, QTabletEvent
 from dataclasses import dataclass, field
 from typing import List, Optional
-import sys
-sys.path.append('..')
+
 from config import COLORS, TIMING
 
 

@@ -30,6 +30,9 @@ CONCRETE_ITEMS = [
     {'name': 'hearts', 'emoji': '❤️'},
 ]
 
+# Alias for legacy code compatibility
+ITEMS = CONCRETE_ITEMS
+
 # =============================================================================
 # "OMNI KIDS" COLOR PALETTE (Gemini + ChatGPT Reviewed)
 # Warm, accessible, CVD-friendly
@@ -67,6 +70,10 @@ COLORS = {
     
     # Focus ring (accessibility)
     'focus': '#4DA8DA',
+    
+    # Legacy scratchpad colors
+    'canvas': '#FFFFFF',
+    'stroke': '#5D6D7E',
 }
 
 # =============================================================================
@@ -75,6 +82,13 @@ COLORS = {
 FONT_FAMILY = "Lexend"      # Dyslexia-friendly (fallback: Comic Sans MS)
 FONT_SIZE_BODY = 22         # Bumped up
 FONT_SIZE_HEADING = 32      # Bumped up
+
+# Legacy font sizes for MainWindow
+FONT_SIZES = {
+    'problem_text': 28,
+    'button_text': 18,
+    'feedback_text': 16,
+}
 
 # =============================================================================
 # ECONOMY
@@ -88,3 +102,45 @@ MAP_LEVELS_COUNT = 10        # Levels per map
 # =============================================================================
 VOICE_TYPE = 'edge-tts'
 VOICE_NAME = 'en-US-JennyNeural'
+
+# =============================================================================
+# TIMING (For Scratchpad/MainWindow)
+# =============================================================================
+TIMING = {
+    'idle_prompt_seconds': 15.0,    # Prompt if no activity
+    'celebration_duration': 2.5,    # How long to celebrate
+}
+
+# =============================================================================
+# PEDAGOGY (For PedagogicalAgent)
+# =============================================================================
+MAX_ATTEMPTS_BEFORE_SCAFFOLDING = 3  # Offer help after N wrong attempts
+MAX_DRAWING_PASSES = 2               # Clear canvas after N failed drawings
+
+# Growth Mindset Feedback Messages
+FEEDBACK = {
+    'effort_acknowledged': [
+        "I see you working hard!",
+        "You're really thinking about this!",
+        "Great effort!",
+        "I like how you're trying!",
+    ],
+    'success_specific': [
+        "You did it! 🎉",
+        "Wonderful counting!",
+        "That's exactly right!",
+        "You're a counting star! ⭐",
+    ],
+    'gentle_redirect': [
+        "Hmm, let's count together!",
+        "Almost! Try counting again.",
+        "Let's look at this together.",
+        "Good try! Can you count once more?",
+    ],
+    'scaffolding_offer': [
+        "Would you like me to help?",
+        "Let's count them together!",
+        "I'll point and you count!",
+        "Let me give you a hint!",
+    ],
+}
