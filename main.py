@@ -24,7 +24,9 @@ from qasync import QEventLoop
 from config import FONT_FAMILY, COLORS, MIN_TOUCH_TARGET
 from core.database import DatabaseService
 from core.audio_service import AudioService
+from core.hint_engine import RuleBasedHintEngine
 from core.problem_factory import ProblemFactory
+from core.sfx import SFX
 from ui.game_manager import GameManager
 from core.utils import safe_create_task
 from core.container import ServiceContainer
@@ -76,7 +78,8 @@ def main():
     container = ServiceContainer()
     container.register(DatabaseService, db_service)
     container.register(AudioService, audio_service)
-    container.register(ProblemFactory, ProblemFactory()) # Factory doesn't need init args yet
+    container.register(ProblemFactory, ProblemFactory())
+    container.register(RuleBasedHintEngine, RuleBasedHintEngine())
     
     # Init Game Manager with Container
     window = GameManager(container)

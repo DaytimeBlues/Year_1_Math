@@ -1,15 +1,13 @@
 """
-Gemini 2.5 Pro TTS Generator
+Gemini 2.5 Pro TTS Generator (v2)
 
 Generates high-quality TTS audio files from the voice_bank.yaml phrase list.
 Uses Google's Gemini 2.5 Pro for natural, warm speech.
 
-Usage:
-    python generate_voice_bank.py
-
-Prerequisites:
-    pip install google-genai
-    export GOOGLE_API_KEY=your_key_here
+Features:
+- Automatic MD5 hashing for change detection
+- Retry logic with exponential backoff for rate limits
+- Skips existing files to save on API usage
 """
 
 import os
@@ -52,46 +50,59 @@ def phrase_to_filename(category: str, index: int, text: str) -> str:
     return f"{clean_cat}_{index:02d}_{text_hash}.mp3"
 
 
-async def generate_audio_gemini(text: str, output_path: Path) -> bool:
+async def generate_audio_gemini(text: str, output_path: Path, retries: int = 3) -> bool:
     """
     Generate audio using Gemini 2.5 Pro TTS.
-    
-    Returns True if successful, False otherwise.
+    With retry logic for rate limits.
     """
     if not GENAI_AVAILABLE:
         print(f"[SKIP] google-genai not available: {text[:40]}...")
         return False
     
-    try:
-        client = genai.Client()
-        
-        # Use Gemini TTS endpoint
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash-preview-tts",
-            contents=text,
-            config=genai.types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=genai.types.SpeechConfig(
-                    voice_config=genai.types.VoiceConfig(
-                        prebuilt_voice_config=genai.types.PrebuiltVoiceConfig(
-                            voice_name=VOICE_NAME,
+    client = genai.Client()
+
+    for attempt in range(retries):
+        try:
+            # Use Gemini TTS endpoint
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash-preview-tts",
+                contents=text,
+                config=genai.types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=genai.types.SpeechConfig(
+                        voice_config=genai.types.VoiceConfig(
+                            prebuilt_voice_config=genai.types.PrebuiltVoiceConfig(
+                                voice_name=VOICE_NAME,
+                            )
                         )
-                    )
+                    ),
                 ),
-            ),
-        )
-        
-        # Save audio data
-        audio_data = response.candidates[0].content.parts[0].inline_data.data
-        with open(output_path, "wb") as f:
-            f.write(audio_data)
-        
-        print(f"[OK] {output_path.name}")
-        return True
-        
-    except Exception as e:
-        print(f"[ERROR] {text[:30]}... - {e}")
-        return False
+            )
+            
+            # Save audio data
+            if response.candidates and response.candidates[0].content.parts:
+                audio_data = response.candidates[0].content.parts[0].inline_data.data
+                with open(output_path, "wb") as f:
+                    f.write(audio_data)
+                
+                print(f"[OK] {output_path.name}")
+                return True
+            else:
+                print(f"[WARN] No audio parts in response for: {text[:30]}...")
+                return False
+                
+        except Exception as e:
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                wait_time = (attempt + 1) * 30  # 30s, 60s, 90s backoff
+                print(f"[RATE LIMIT] Waiting {wait_time}s to retry: {text[:30]}...")
+                await asyncio.sleep(wait_time)
+            else:
+                print(f"[ERROR] {text[:30]}... - {e}")
+                if attempt == retries - 1:
+                    return False
+                await asyncio.sleep(2)
+                
+    return False
 
 
 async def generate_all_phrases():
@@ -126,8 +137,8 @@ async def generate_all_phrases():
             if await generate_audio_gemini(text, output_path):
                 success += 1
             
-            # Rate limiting
-            await asyncio.sleep(0.5)
+            # Rate limiting - slightly longer delay
+            await asyncio.sleep(1.0)
     
     print(f"\n=== COMPLETE ===")
     print(f"Total: {total}, Success: {success}, Failed: {total - success}")

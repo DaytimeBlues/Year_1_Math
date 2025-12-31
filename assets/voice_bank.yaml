@@ -214,6 +214,38 @@ items_hearts:
   - "How many hearts do you see?"
   - "Let's count the hearts!"
 
+items_balloons:
+  - "How many balloons do you see?"
+  - "Let's count the balloons!"
+
+items_cookies:
+  - "How many cookies can you count?"
+  - "Let's count the cookies!"
+
+items_bees:
+  - "How many buzzy bees are there?"
+  - "Let's count the bees!"
+
+items_dogs:
+  - "How many dogs do you see?"
+  - "Let's count the little dogs!"
+
+items_buses:
+  - "How many buses are parked here?"
+  - "Let's count the buses!"
+
+items_cakes:
+  - "How many yummy cakes do you see?"
+  - "Let's count the cakes!"
+
+items_presents:
+  - "How many birthday presents are there?"
+  - "Let's count the presents!"
+
+items_butterflies:
+  - "How many butterflies are flying?"
+  - "Let's count the butterflies!"
+
 future_patterns:
   - "What comes next in the pattern?"
   - "Can you find the next one?"

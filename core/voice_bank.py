@@ -46,6 +46,9 @@ class VoiceBank:
         self._player.setAudioOutput(self._output)
         self._output.setVolume(1.0)
         
+        # Track durations (estimated at 2.5s avg for now)
+        self._estimated_duration = 2.5
+        
         self._load_phrases()
     
     def _load_phrases(self):
@@ -91,23 +94,29 @@ class VoiceBank:
         """Check if category has any available audio."""
         return category in self._phrases and len(self._phrases[category]) > 0
     
-    def play_random(self, category: str) -> bool:
+    def play_random(self, category: str) -> float:
         """
         Play a random phrase from the category.
-        Returns True if played, False if category empty/missing.
+        
+        Returns:
+            Duration in seconds (estimated 2.5s), or 0.0 if category empty/missing.
+            
+        Note:
+            Return value allows callers to adjust await timing instead of
+            hardcoded sleep() calls (Claude review fix).
         """
         if not self.has_category(category):
-            return False
+            return 0.0
         
         text, audio_path = random.choice(self._phrases[category])
         self._player.setSource(QUrl.fromLocalFile(str(audio_path)))
         self._player.play()
-        return True
+        return self._estimated_duration  # TODO: Read actual duration from MP3 metadata
     
-    def play_specific(self, category: str, index: int = 0) -> bool:
-        """Play a specific phrase by index."""
+    def play_specific(self, category: str, index: int = 0) -> float:
+        """Play a specific phrase by index. Returns duration in seconds."""
         if not self.has_category(category):
-            return False
+            return 0.0
         
         if index >= len(self._phrases[category]):
             index = 0
@@ -115,12 +124,12 @@ class VoiceBank:
         text, audio_path = self._phrases[category][index]
         self._player.setSource(QUrl.fromLocalFile(str(audio_path)))
         self._player.play()
-        return True
+        return self._estimated_duration
     
-    def play_number(self, n: int) -> bool:
-        """Play a number (1-20)."""
+    def play_number(self, n: int) -> float:
+        """Play a number (1-20). Returns duration in seconds."""
         if n < 1 or n > 20:
-            return False
+            return 0.0
         return self.play_specific("numbers", n - 1)
     
     def stop(self):

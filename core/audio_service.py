@@ -168,15 +168,15 @@ class AudioService(QObject):
         """
         Speak text with proper race condition protection.
         
-        CRITICAL FIX (DeepSeek): Lock only covers setup, not playback.
-        This prevents UI freeze during TTS.
+        CRITICAL FIX (Claude Review): Lock now covers play() to prevent
+        concurrent setSource() calls from corrupting player state.
         """
         if not text:
             return
         
         future = None
         
-        # LOCK: Only for critical setup section
+        # LOCK: Covers entire setup AND play initiation
         async with self._speak_lock:
             # Cancel any ongoing speech
             if self._current_tts_future and not self._current_tts_future.done():
@@ -187,7 +187,7 @@ class AudioService(QObject):
             abs_path = str(filepath.absolute())
             
             if not filepath.exists():
-                success = await self._generate_tts_safe(text, abs_path)
+                success = await self._generate_tts(text, filepath)
                 if not success:
                     print(f"[Audio] TTS generation failed: {text[:30]}...")
                     return
@@ -203,11 +203,12 @@ class AudioService(QObject):
             
             # Auto-cleanup on done
             future.add_done_callback(lambda f: self._tts_futures.discard(f))
+            
+            # Start playback INSIDE lock to prevent race
+            self._duck_others(True)
+            self.tts_player.play()
         
-        # RELEASE LOCK before playing (DeepSeek fix)
-        self._duck_others(True)
-        self.tts_player.play()
-        
+        # RELEASE LOCK after play started
         if block and future:
             try:
                 await asyncio.wait_for(future, timeout=TTS_TIMEOUT_SECONDS)
@@ -221,61 +222,57 @@ class AudioService(QObject):
                 if self._current_tts_future is future:
                     self._current_tts_future = None
 
-    async def _generate_tts_safe(self, text: str, target_path: str) -> bool:
+    async def _generate_tts(self, text: str, target_path: Path) -> bool:
         """
-        Generate TTS using subprocess (DeepSeek fix).
-        Avoids nested event loop issues with asyncio.run().
+        AI GENERATION: Using Gemini 2.5 Flash TTS for high quality.
+        Replaces robots with natural speech.
         """
-        loop = asyncio.get_running_loop()
-        
-        def generate_sync():
-            try:
-                # Use edge-tts CLI (more stable than async API in thread)
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
-                    tmp_path = tmp.name
-                
-                cmd = [
-                    'edge-tts',
-                    '--text', text,
-                    '--voice', self.voice,
-                    '--write-media', tmp_path
-                ]
-                
-                result = subprocess.run(
-                    cmd, 
-                    capture_output=True, 
-                    timeout=TTS_TIMEOUT_SECONDS - 2
-                )
-                
-                if result.returncode == 0 and Path(tmp_path).exists():
-                    shutil.move(tmp_path, target_path)
-                    return True
-                else:
-                    print(f"[Audio] edge-tts error: {result.stderr.decode()[:100]}")
-                    return False
-                    
-            except subprocess.TimeoutExpired:
-                print(f"[Audio] TTS subprocess timeout: {text[:30]}...")
-                return False
-            except Exception as e:
-                print(f"[Audio] TTS generation error: {e}")
-                return False
-        
         try:
-            success = await asyncio.wait_for(
-                loop.run_in_executor(None, generate_sync),
-                timeout=TTS_TIMEOUT_SECONDS
+            from google import genai
+        except ImportError:
+            print("[Audio] google-genai not installed. Falling back to static cache.")
+            return False
+
+        # SECURITY: Never fallback to hardcoded keys
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            print("[Audio] GOOGLE_API_KEY not set. Dynamic TTS disabled.")
+            return False
+            
+        try:
+            client = genai.Client(api_key=api_key)
+            
+            # Use Gemini TTS endpoint
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash-preview-tts",
+                contents=text,
+                config=genai.types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=genai.types.SpeechConfig(
+                        voice_config=genai.types.VoiceConfig(
+                            prebuilt_voice_config=genai.types.PrebuiltVoiceConfig(
+                                voice_name="Aoede", # Warm female voice
+                            )
+                        )
+                    ),
+                ),
             )
             
-            if success:
+            # Save audio data
+            if response.candidates and response.candidates[0].content.parts:
+                audio_data = response.candidates[0].content.parts[0].inline_data.data
+                with open(target_path, "wb") as f:
+                    f.write(audio_data)
+                
                 # Schedule cache cleanup (non-blocking)
                 asyncio.create_task(self.cache.enforce_limits_async())
-            
-            return success
-            
-        except asyncio.TimeoutError:
-            print(f"[Audio] TTS executor timeout: {text[:30]}...")
+                return True
+            else:
+                print(f"[Audio] No audio parts in Gemini response for: {text[:30]}...")
+                return False
+                
+        except Exception as e:
+            print(f"[Audio] Gemini TTS error: {e}")
             return False
 
     @pyqtSlot(QMediaPlayer.MediaStatus)
