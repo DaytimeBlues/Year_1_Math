@@ -9,10 +9,13 @@ Categories:
 - level_*, celebration_*, farewell, numbers, items_*
 """
 
+import importlib.util
 import random
 import yaml
 import hashlib
 from pathlib import Path
+from typing import List, Tuple
+
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtCore import QUrl
 
@@ -20,6 +23,7 @@ from PyQt6.QtCore import QUrl
 SCRIPT_DIR = Path(__file__).parent.parent
 VOICE_BANK_DIR = SCRIPT_DIR / "assets" / "audio" / "voice_bank"
 VOICE_BANK_YAML = SCRIPT_DIR / "assets" / "voice_bank.yaml"
+DEFAULT_DURATION = 2.5
 
 
 def phrase_to_filename(category: str, index: int, text: str) -> str:
@@ -40,14 +44,11 @@ class VoiceBank:
     """
     
     def __init__(self):
-        self._phrases: dict[str, list[tuple[str, Path]]] = {}
+        self._phrases: dict[str, list[Tuple[str, Path, float]]] = {}
         self._player = QMediaPlayer()
         self._output = QAudioOutput()
         self._player.setAudioOutput(self._output)
         self._output.setVolume(1.0)
-        
-        # Track durations (estimated at 2.5s avg for now)
-        self._estimated_duration = 2.5
         
         self._load_phrases()
     
@@ -75,10 +76,27 @@ class VoiceBank:
                 
                 total += 1
                 if audio_path.exists():
-                    self._phrases[category].append((text, audio_path))
+                    duration = self._get_duration(audio_path)
+                    self._phrases[category].append((text, audio_path, duration))
                     available += 1
         
         print(f"[VoiceBank] Loaded {available}/{total} phrases")
+
+    def _get_duration(self, audio_path: Path) -> float:
+        """Best-effort duration lookup to drive accurate sleep timing."""
+        if not audio_path.exists():
+            return 0.0
+
+        if importlib.util.find_spec("mutagen.mp3") is None:
+            return DEFAULT_DURATION
+
+        from mutagen.mp3 import MP3  # type: ignore
+
+        try:
+            info = MP3(audio_path)
+            return float(info.info.length)
+        except Exception:
+            return DEFAULT_DURATION
     
     def get_categories(self) -> list[str]:
         """Get all available categories."""
@@ -88,43 +106,34 @@ class VoiceBank:
         """Get all phrases in a category."""
         if category not in self._phrases:
             return []
-        return [text for text, _ in self._phrases[category]]
+        return [text for text, _, _ in self._phrases[category]]
     
     def has_category(self, category: str) -> bool:
         """Check if category has any available audio."""
         return category in self._phrases and len(self._phrases[category]) > 0
     
     def play_random(self, category: str) -> float:
-        """
-        Play a random phrase from the category.
-        
-        Returns:
-            Duration in seconds (estimated 2.5s), or 0.0 if category empty/missing.
-            
-        Note:
-            Return value allows callers to adjust await timing instead of
-            hardcoded sleep() calls (Claude review fix).
-        """
+        """Play a random phrase and return its duration (seconds)."""
         if not self.has_category(category):
             return 0.0
         
-        text, audio_path = random.choice(self._phrases[category])
+        _, audio_path, duration = random.choice(self._phrases[category])
         self._player.setSource(QUrl.fromLocalFile(str(audio_path)))
         self._player.play()
-        return self._estimated_duration  # TODO: Read actual duration from MP3 metadata
+        return duration
     
     def play_specific(self, category: str, index: int = 0) -> float:
-        """Play a specific phrase by index. Returns duration in seconds."""
+        """Play a specific phrase by index and return its duration."""
         if not self.has_category(category):
             return 0.0
         
         if index >= len(self._phrases[category]):
             index = 0
         
-        text, audio_path = self._phrases[category][index]
+        _, audio_path, duration = self._phrases[category][index]
         self._player.setSource(QUrl.fromLocalFile(str(audio_path)))
         self._player.play()
-        return self._estimated_duration
+        return duration
     
     def play_number(self, n: int) -> float:
         """Play a number (1-20). Returns duration in seconds."""
