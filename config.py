@@ -84,7 +84,10 @@ REWARD_COMPLETION = 50       # Bonus for completing a level
 MAP_LEVELS_COUNT = 10        # Levels per map
 
 # =============================================================================
-# VOICE CONFIGURATION
+# AUDIO CONFIGURATION
 # =============================================================================
-VOICE_TYPE = 'edge-tts'
-VOICE_NAME = 'en-US-JennyNeural'
+VOLUME_SFX = 0.6
+VOLUME_MUSIC = 0.3
+VOLUME_MUSIC_DUCKED = 0.1
+VOLUME_VOICE = 1.0
+SFX_CACHE_MAX = 20

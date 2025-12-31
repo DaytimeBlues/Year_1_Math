@@ -57,6 +57,8 @@ class GameManager(QMainWindow):
         self._initialized = False
         self._wrong_attempts = 0
         self._current_item_name = None  # For VoiceBank item lookup
+        self._pending_tasks: set[asyncio.Task] = set()
+        self._hint_timer: Optional[QTimer] = None
         
         # Hint Engine (Rule-Based, No AI)
         self.hint_engine = self.container.resolve(RuleBasedHintEngine)
@@ -91,6 +93,27 @@ class GameManager(QMainWindow):
         """Ensure overlay covers entire window on resize."""
         self.celebration.resize(self.size())
         super().resizeEvent(event)
+
+    def _track_task(self, coro) -> asyncio.Task:
+        """Create and track an asyncio task to allow cancellation."""
+        task = asyncio.create_task(coro)
+        self._pending_tasks.add(task)
+        task.add_done_callback(lambda _t: self._pending_tasks.discard(_t))
+        return task
+
+    def _cancel_pending(self) -> None:
+        """Cancel all pending tasks and stop any active timers/audio."""
+        for task in list(self._pending_tasks):
+            if not task.done():
+                task.cancel()
+        self._pending_tasks.clear()
+
+        if self._hint_timer:
+            self._hint_timer.stop()
+            self._hint_timer = None
+
+        self.voice_bank.stop()
+        self.audio.duck_music(False)
     
     # ==========================================================================
     # PUBLIC API
@@ -116,16 +139,14 @@ class GameManager(QMainWindow):
         await self.map_view.refresh(self.current_eggs)
         self.director.set_state(AppState.TUTOR_SPEAKING)
         
-        # Use premium voice bank for greeting
-        duration = self.voice_bank.play_random("welcome")
-        if duration > 0:
-            await asyncio.sleep(duration)
-        # No fallback needed - VoiceBank has 10 welcome clips
+        # Use premium voice bank for greeting - event-driven
+        await self.voice_bank.play_random_async("welcome")
         
         self.director.set_state(AppState.IDLE)
     
     def _start_level(self, level: int):
         """Start a level - generate problem and show activity view."""
+        self._cancel_pending()
         self.current_level = level
         self._wrong_attempts = 0  # Reset hints for new level
         
@@ -150,7 +171,7 @@ class GameManager(QMainWindow):
         
         # Speak prompt with proper state transitions (Codex fix)
         self.director.set_state(AppState.TUTOR_SPEAKING)
-        safe_create_task(self._announce_level(level, data['host']))
+        self._track_task(self._announce_level(level, data['host']))
     
     def _process_answer(self, correct: bool):
         """Handle answer submission."""
@@ -162,20 +183,20 @@ class GameManager(QMainWindow):
             
             # Use voice bank for encouragement
             category = get_wrong_category(self._wrong_attempts)
-            duration = self.voice_bank.play_random(category)
             
-            # Provide hint after encouragement
-            if self._wrong_attempts <= 3:
-                if duration > 0:
-                    QTimer.singleShot(int(duration * 1000), lambda: self._process_hint_after_delay())
-                else:
+            # Provide hint after encouragement (event-driven)
+            async def encouragement_flow():
+                await self.voice_bank.play_random_async(category)
+                if self._wrong_attempts <= 3:
                     self._process_hint_after_delay()
-            else:
-                self._resume_after_hint()
+                else:
+                    self._resume_after_hint()
+            
+            self._track_task(encouragement_flow())
             return
         
         # Success - run async handler
-        safe_create_task(self._handle_success())
+        self._track_task(self._handle_success())
     
     async def _handle_success(self):
         """Async success handler - update economy, progress, audio."""
@@ -186,19 +207,15 @@ class GameManager(QMainWindow):
         # 2. Unlock level progress
         await self.db.unlock_level(self.current_level)
         
-        # 3. Audio - Use premium voice bank
+        # 3. Audio - Use premium voice bank (event-driven)
         self.director.set_state(AppState.CELEBRATION)
         
-        # Success Feedback (from VoiceBank)
+        # Success Feedback
         category = get_success_category()
-        duration = self.voice_bank.play_random(category)
-        if duration > 0:
-            await asyncio.sleep(duration)
+        await self.voice_bank.play_random_async(category)
         
         # Celebration audio
-        duration = self.voice_bank.play_random("celebration_rewards")
-        if duration > 0:
-            await asyncio.sleep(duration)
+        await self.voice_bank.play_random_async("celebration_rewards")
         
         self.director.set_state(AppState.CELEBRATION)
         self.celebration.start(f"LEVEL {self.current_level} COMPLETE!")
@@ -208,38 +225,31 @@ class GameManager(QMainWindow):
         self._show_map()
     
     def _show_map(self):
-        """Return to map view."""
+        """Return to map view with cancellation check."""
+        self._cancel_pending()
         self.celebration.stop()  # Ensure closed if skipped
-        safe_create_task(self.map_view.refresh(self.current_eggs))
+        self._track_task(self.map_view.refresh(self.current_eggs))
         self.stack.setCurrentWidget(self.map_view)
         self.director.set_state(AppState.IDLE)
 
     async def _announce_level(self, level: int, host_text: str) -> None:
-        """Speak the level intro using VoiceBank only (no API needed)."""
+        """Speak the level intro using event-driven VoiceBank signals."""
         # 1. Level Start phrase
-        duration = self.voice_bank.play_random("level_start")
-        if duration > 0:
-            await asyncio.sleep(duration)
+        await self.voice_bank.play_random_async("level_start")
         
-        # 2. Item-specific question from VoiceBank
+        # 2. Item-specific question 
         item_category = f"items_{self._current_item_name}"
-        duration = self.voice_bank.play_random(item_category)
-        if duration > 0:
-            await asyncio.sleep(duration)
+        await self.voice_bank.play_random_async(item_category)
         
         self.director.set_state(AppState.INPUT_ACTIVE)
 
     async def _play_hint_and_resume(self, message: str) -> None:
-        """Speak a hint using VoiceBank only (no API needed)."""
+        """Speak a hint using event-driven VoiceBank."""
         self.director.set_state(AppState.TUTOR_SPEAKING)
         
         # Use voice bank for hints
         cat = get_hint_category(self._wrong_attempts)
-        duration = self.voice_bank.play_random(cat)
-        
-        if duration > 0:
-            await asyncio.sleep(duration)
-        # No fallback needed - VoiceBank has all hint clips
+        await self.voice_bank.play_random_async(cat)
             
         self._resume_after_hint()
 
@@ -252,6 +262,6 @@ class GameManager(QMainWindow):
         """Process hint after encouragement audio finishes."""
         hint = self.hint_engine.get_hint("counting", self._wrong_attempts)
         if hint:
-            safe_create_task(self._play_hint_and_resume(hint.message))
+            self._track_task(self._play_hint_and_resume(hint.message))
         else:
             self._resume_after_hint()

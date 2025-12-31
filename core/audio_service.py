@@ -10,8 +10,9 @@ Removed in v4:
 - TTS cache management
 - GOOGLE_API_KEY dependency
 """
+import logging
 import os
-from typing import Optional
+from typing import Optional, Callable
 from pathlib import Path
 from collections import OrderedDict
 
@@ -19,8 +20,10 @@ from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QSoundEffect
 from PyQt6.QtCore import QUrl, QObject
 
 from core.sfx import get_sfx_path
+from config import VOLUME_SFX, VOLUME_MUSIC, VOLUME_MUSIC_DUCKED, SFX_CACHE_MAX
 
-SFX_CACHE_MAX = 20
+
+logger = logging.getLogger(__name__)
 
 
 class SFXCache:
@@ -44,7 +47,7 @@ class SFXCache:
         
         effect = QSoundEffect()
         effect.setSource(QUrl.fromLocalFile(path))
-        effect.setVolume(0.6)
+        effect.setVolume(VOLUME_SFX)
         
         self._cache[name] = effect
         
@@ -74,11 +77,14 @@ class AudioService(QObject):
         # SFX Channel (LRU cached for low latency)
         self._sfx_cache = SFXCache()
         
+        # Optional voice stop callback (provided by VoiceBank)
+        self._voice_stop_callback: Optional[Callable[[], None]] = None
+
         # Music Channel
         self.music_player = QMediaPlayer()
         self.music_output = QAudioOutput()
         self.music_player.setAudioOutput(self.music_output)
-        self.music_output.setVolume(0.3)
+        self.music_output.setVolume(VOLUME_MUSIC)
 
     def play_sfx(self, sfx_name: str) -> None:
         """Fire-and-forget SFX playback with LRU cache."""
@@ -86,9 +92,13 @@ class AudioService(QObject):
         if effect:
             effect.play()
 
+    def set_voice_stop_callback(self, callback: Callable[[], None]) -> None:
+        """Allow external voice players to register a stop hook."""
+        self._voice_stop_callback = callback
+
     def duck_music(self, active: bool) -> None:
         """Lower music volume when voice is active."""
-        target_vol = 0.1 if active else 0.3
+        target_vol = VOLUME_MUSIC_DUCKED if active else VOLUME_MUSIC
         self.music_output.setVolume(target_vol)
 
     def play_music(self, music_path: str, loop: bool = True) -> None:
@@ -103,10 +113,13 @@ class AudioService(QObject):
         self.music_player.play()
 
     def stop_voice(self) -> None:
-        """Stop voice playback (stub for VoiceBank compatibility)."""
-        # Voice is handled by VoiceBank, not AudioService
-        # This method exists for interface compatibility
-        pass
+        """Stop voice playback if a voice provider is registered."""
+        if self._voice_stop_callback:
+            try:
+                self._voice_stop_callback()
+            except Exception:
+                logger.exception("Voice stop callback failed")
+        self.duck_music(False)
 
     def stop_music(self) -> None:
         """Stop background music."""
