@@ -42,34 +42,89 @@ def draw_premium_background(widget: QWidget):
     painter.end()
 
 
-def create_shake_animation(widget: QWidget, duration: int = 400) -> QSequentialAnimationGroup:
+def create_shake_animation(widget: QWidget, intensity: int = 10) -> QSequentialAnimationGroup:
     """
-    Create a left-right shake animation for wrong answer feedback.
+    Creates a juicy shake animation with elastic overshoot (Frontend Audit v3.0).
     
-    Usage:
-        anim = create_shake_animation(button)
-        anim.start()
+    Physics inspiration: Spring with high frequency, quick decay.
     """
-    anim_group = QSequentialAnimationGroup(widget)
+    print(f"[premium_utils] ANIM: Creating elastic shake animation for {widget.objectName()}")
     
-    original_geo = widget.geometry()
+    original_x = widget.x()
     
-    # Shake pattern: right, left, right, left, center
-    offsets = [10, -10, 8, -8, 5, -5, 0]
+    group = QSequentialAnimationGroup(widget)
     
-    for offset in offsets:
-        anim = QPropertyAnimation(widget, b"geometry")
-        anim.setDuration(duration // len(offsets))
+    # Keyframe timings for organic feel
+    # Pattern: Right -> Left -> Right(smaller) -> Left(smaller) -> Center
+    # We use QPropertyAnimation segments to simulate the elastic settle manually 
+    # OR we use a single OutElastic curve. 
+    # The audit recommended "Custom Elastic Shake" using a sequence OR single curve.
+    # The single curve approach is cleaner for maintenance.
+    
+    # However, QPropertyAnimation with OutElastic on 'geometry' can be tricky if the widget is in a layout.
+    # But for "shake", we typically want visual displacement. 
+    # Let's use the robust multi-keyframe approach from the audit for maximum control.
+    
+    keyframes = [
+        (intensity * 1.0,  50,  QEasingCurve.Type.OutQuad),     # Snap right
+        (-intensity * 0.8, 50,  QEasingCurve.Type.OutQuad),     # Snap left
+        (intensity * 0.4,  40,  QEasingCurve.Type.OutCubic),    # Smaller right
+        (-intensity * 0.2, 40,  QEasingCurve.Type.OutCubic),    # Smaller left
+        (0,                60,  QEasingCurve.Type.OutElastic),  # Settle with bounce
+    ]
+    
+    for offset, duration, easing in keyframes:
+        anim = QPropertyAnimation(widget, b"pos") # Use 'pos' instead of 'x' for broader compatibility? Or 'geometry'?
+        # 'pos' works well for widgets in relative positioning or windows. 
+        # Inside layouts, 'geometry' is often fought over.
+        # But for a quick shake, 'geometry' or 'pos' (via property proxy) is standard.
+        # Let's stick to the audit's suggestion which implies 'x' property.
+        
+        anim = QPropertyAnimation(widget, b"geometry") # Stick to geometry for robustness
+        anim.setDuration(duration)
         anim.setStartValue(widget.geometry())
         
-        new_geo = QRect(original_geo)
-        new_geo.moveLeft(original_geo.left() + offset)
-        anim.setEndValue(new_geo)
-        anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+        # Calculate target rect
+        current_geo = widget.geometry()
+        # Note: In a sequence, 'widget.geometry()' is evaluated at CREATION time, not runtime.
+        # This is a common pitfall. We need to chain them properly.
+        # But QSequentialAnimationGroup doesn't auto-chain start values unless configured.
         
-        anim_group.addAnimation(anim)
+        # Actually, simpler is better:
+        # A single animation using key values?
+        
+        pass 
     
-    return anim_group
+    # RETRY: The loop approach in the audit code requires offsets relative to *original* position.
+    # We need to set start/end values relative to that.
+    
+    # Let's use the single-curve OutElastic approach recommended as "Alternative" in the audit 
+    # because it is much less code and smoother to maintain.
+    
+    anim = QPropertyAnimation(widget, b"geometry")
+    anim.setDuration(500) # Slightly longer to let the elastic settle
+    
+    curve = QEasingCurve(QEasingCurve.Type.OutElastic)
+    curve.setAmplitude(1.2)   # Slightly exaggerated bounce
+    curve.setPeriod(0.25)     # Faster oscillation
+    anim.setEasingCurve(curve)
+    
+    # We want to shake "from" an offset "to" original.
+    original_geo = widget.geometry()
+    offset_geo = QRect(original_geo)
+    offset_geo.moveLeft(original_geo.left() + intensity)
+    
+    anim.setStartValue(offset_geo)
+    anim.setEndValue(original_geo)
+    
+    # Wrap in group to match return type signature expected by other code?
+    # The existing signature returns QSequentialAnimationGroup.
+    # We should wrap it to avoid breaking callers.
+    
+    wrapper_group = QSequentialAnimationGroup(widget)
+    wrapper_group.addAnimation(anim)
+    
+    return wrapper_group
 
 
 def create_pulse_animation(widget: QWidget, duration: int = 1000) -> QPropertyAnimation:

@@ -270,3 +270,20 @@ future_comparison:
 future_general:
   - "Great! Try the next question."
   - "New skill unlocked! Let's practice!"
+
+w3_takeaway:
+  - "If we take away..."
+  - "Let's take away..."
+  - "Now take away..."
+  - "Take away..."
+  - "What if ... fly away?"
+  - "Let's send away..."
+  - "We can take away..."
+  - "Let's try taking away..."
+  - "Can you take away...?"
+  - "Okay, take away..."
+
+w3_zero:
+  - "We took them all away. None are left."
+  - "All gone. That means zero left."
+  - "None left to count. That's zero."

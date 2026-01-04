@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 from .base import ProblemData, ProblemStrategy
+from .distractor_generator import generate_subtraction_distractors
 
 
 class SubtractionStrategy(ProblemStrategy):
@@ -42,7 +43,12 @@ class SubtractionStrategy(ProblemStrategy):
                 item_name=spec['item'],
                 operator_type="subtract",
                 audio_sequence=spec['audio'],
-                options=self._generate_distractors(spec["target"], count=2, min_val=0, max_val=max(10, spec['a'])),
+                options=generate_subtraction_distractors(
+                    spec["target"], 
+                    spec['a'], 
+                    spec['b'],
+                    history_errors=self.profile.get_frequent_errors("subtraction") if self.profile else None
+                ),
             )
 
         # Fallback: Procedural
@@ -75,7 +81,12 @@ class SubtractionStrategy(ProblemStrategy):
             item_name=item,
             operator_type="subtract",
             audio_sequence=audio,
-            options=self._generate_distractors(result, count=2, min_val=0, max_val=max_start),
+            options=generate_subtraction_distractors(
+                result, 
+                minuend, 
+                subtrahend,
+                history_errors=self.profile.get_frequent_errors("subtraction") if self.profile else None
+            ),
         )
     
     def get_zero_result_feedback(self) -> str:

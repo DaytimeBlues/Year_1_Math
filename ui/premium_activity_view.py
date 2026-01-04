@@ -204,7 +204,8 @@ class PremiumActivityView(QWidget):
     └────────────────────────────────────────┘
     """
     
-    answer_submitted = pyqtSignal(bool)
+    # signal(is_correct, chosen, target)
+    answer_submitted = pyqtSignal(bool, int, int)
     back_to_map = pyqtSignal()
     
     def __init__(self, director, audio_service=None):
@@ -306,30 +307,52 @@ class PremiumActivityView(QWidget):
         return header
     
     def _build_question_card(self) -> QFrame:
-        """Build the white rounded card for question display."""
+        """Build the white rounded card for question display. RESPONSIVE UPDATE (Frontend Audit v3.0)"""
+        print("[PremiumActivityView] LAYOUT: Building responsive question card")
+        
         card = QFrame()
         card.setObjectName("QuestionCard")
         card.setStyleSheet(QUESTION_CARD_STYLE)
-        card.setMinimumSize(500, 250)
-        card.setMaximumWidth(700)
+        
+        # Responsive sizing: percentage-based with sensible limits instead of hard fixed pixels
+        card.setMinimumSize(320, 200)   # Supports 4:3 @ 800x600
+        card.setMaximumSize(800, 500)   # Caps growth on ultrawide
+        card.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred
+        )
+        
         add_soft_shadow(card, blur=30, offset_y=10, opacity=25)
         
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(20)
-        card_layout.setContentsMargins(40, 30, 40, 30)
+        card_layout.setSpacing(15) # Slightly tighter for small screens
+        card_layout.setContentsMargins(30, 25, 30, 25)
         
         # Question text
         self.question_label = QLabel("How many?")
-        self.question_label.setFont(QFont(FONT_FAMILY, 28, QFont.Weight.Bold))
+        self.question_label.setFont(QFont(FONT_FAMILY, 24, QFont.Weight.Bold)) # Slightly smaller base font, scalable?
         self.question_label.setStyleSheet(f"color: {COLORS['text']}; background: transparent;")
         self.question_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.question_label.setWordWrap(True)
+        # Label should take minimal vertical space needed
+        self.question_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum
+        )
         card_layout.addWidget(self.question_label)
         
         # Visual display (VisualBoard)
         from ui.visual_board import VisualBoard
         self.visual_board = VisualBoard()
-        card_layout.addWidget(self.visual_board)
+        
+        # CRITICAL: Board must expand both ways to fill the card body
+        self.visual_board.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+        
+        # Takes remaining space (stretch=1)
+        card_layout.addWidget(self.visual_board, stretch=1)
         
         return card
     
@@ -383,13 +406,13 @@ class PremiumActivityView(QWidget):
     def _render_visuals(self, problem: ProblemData, emoji: str):
         """Delegate visual rendering to board."""
         if problem.operator_type == "subtract":
-            # For subtraction: Show A (total), ghost B (subtracted)
-            # Example: 5 - 2. Show 5 items. Ghost last 2.
+            # For subtraction: Show A (total), CROSSOUT B (subtracted)
+            # Example: 5 - 2. Show 5 items. Cross out last 2.
             # Base items to show is group_a_count (the minuend)
             self.visual_board.render(
                 emoji, 
                 count=problem.group_a_count, 
-                mode="subtract", 
+                mode="crossout", 
                 subtract_count=problem.group_b_count
             )
         else:
@@ -429,8 +452,13 @@ class PremiumActivityView(QWidget):
             button.set_status("incorrect")
             self.feedback_label.setText("Try again!")
             self.feedback_label.setStyleSheet(f"color: {COLORS['error']}; background: transparent;")
+            
+            # Audit Fix: Shake button on wrong answer
+            from ui.premium_utils import create_shake_animation
+            self._shake_anim = create_shake_animation(button)
+            self._shake_anim.start()
         
-        self.answer_submitted.emit(correct)
+        self.answer_submitted.emit(correct, answer, self._correct_answer)
     
     def reset_interaction(self):
         """Reset for new attempt."""

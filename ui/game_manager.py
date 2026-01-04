@@ -22,8 +22,7 @@ from core.container import ServiceContainer
 from core.database import DatabaseService
 from core.director import AppState, Director
 from core.hint_engine import RuleBasedHintEngine
-from core.hint_engine import RuleBasedHintEngine
-from core.problem_factory import ProblemFactory, MathWorld
+from core.problem_factory import ProblemFactory
 from core.sfx import SFX
 from core.utils import safe_create_task
 from core.voice_bank import VoiceBank, get_success_category, get_wrong_category, get_hint_category
@@ -50,11 +49,10 @@ class GameManager(QMainWindow):
         # Resolve Services
         self.db = container.resolve(DatabaseService)
         self.audio = container.resolve(AudioService)
-        self.audio = container.resolve(AudioService)
         self.factory = container.resolve(ProblemFactory)
         
-        # World Configuration
-        self.current_world_mode = MathWorld.COUNTING
+        # World Configuration (string modes match ProblemFactory)
+        self.current_world_mode = "counting"  # "counting", "addition", "subtraction"
         
         # State
         self.current_level = None
@@ -127,6 +125,13 @@ class GameManager(QMainWindow):
         self.voice_bank.stop()
         self.audio.duck_music(False)
     
+    def _compute_difficulty(self, level: int) -> int:
+        """
+        Compute difficulty score from level number.
+        Difficulty is 0-indexed (level 1 = difficulty 0).
+        """
+        return max(0, level - 1)
+    
     # ==========================================================================
     # PUBLIC API
     # ==========================================================================
@@ -198,7 +203,7 @@ class GameManager(QMainWindow):
         self.director.set_state(AppState.TUTOR_SPEAKING)
         self._track_task(self._play_audio_sequence(data.audio_sequence))
     
-    def _process_answer(self, correct: bool):
+    def _process_answer(self, correct: bool, chosen: int, target: int):
         """Handle answer submission."""
         self.director.set_state(AppState.EVALUATING)
         
@@ -206,11 +211,8 @@ class GameManager(QMainWindow):
             self._wrong_attempts += 1
             # Record error in profile
             if self.profile:
-                # Need target and chosen answer. 
-                # Currently _process_answer only gets boolean.
-                # Ideally, we should pass the chosen value.
-                # For now, we just track generic stats if we don't have the value.
-                pass 
+                self.profile.record_error(target, chosen, self.current_mode)
+                self.profile.save()
             
             self.audio.play_sfx(SFX.ERROR)
             
