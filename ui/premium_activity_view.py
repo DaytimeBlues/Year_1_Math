@@ -25,6 +25,7 @@ from config import (
 from core.sfx import SFX
 from core.director import AppState
 from core.problems import ProblemData
+from ui.components import SkipOverlay
 
 
 # =============================================================================
@@ -480,31 +481,3 @@ class PremiumActivityView(QWidget):
         print(f"[PremiumActivityView] Visual Hint: {hint_name}")
 
 
-class SkipOverlay(QWidget):
-    """Transparent overlay for tap-to-skip during blocked states."""
-    
-    clicked = pyqtSignal()
-    
-    def __init__(self, parent, director):
-        super().__init__(parent)
-        self.director = director
-        
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
-        self.resize(parent.size())
-        self.hide()
-        
-        self.clicked.connect(self._on_skip_requested)
-    
-    def _on_skip_requested(self):
-        self.director.force_skip()
-        if hasattr(self.parent(), 'audio') and self.parent().audio:
-            self.parent().audio.stop_voice()
-    
-    def mousePressEvent(self, event):
-        self.clicked.emit()
-        event.accept()
-    
-    def resizeEvent(self, event):
-        if self.parent():
-            self.resize(self.parent().size())

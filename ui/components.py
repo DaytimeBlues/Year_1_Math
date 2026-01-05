@@ -1,8 +1,8 @@
 """
 Shared UI Components
 """
-from PyQt6.QtWidgets import QPushButton, QLabel
-from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, pyqtProperty
+from PyQt6.QtWidgets import QPushButton, QLabel, QWidget
+from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, pyqtProperty, Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
 class JuicyButton(QPushButton):
@@ -58,3 +58,48 @@ class JuicyLabel(QLabel):
         self.anim.setKeyValueAt(0.5, 1.5)
         self.anim.setKeyValueAt(1, 1.0)
         self.anim.start()
+
+
+class SkipOverlay(QWidget):
+    """
+    Transparent overlay that catches taps during TUTOR_SPEAKING/CELEBRATION.
+    
+    Z.ai Solution: Instead of using setEnabled(False) which blocks ALL input
+    including "tap to skip", this overlay allows tap-to-skip while preventing
+    interaction with underlying buttons.
+    """
+    
+    clicked = pyqtSignal()
+    
+    def __init__(self, parent, director):
+        super().__init__(parent)
+        self.director = director
+        
+        # Transparent but catches events
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
+        
+        # Cover entire parent
+        self.resize(parent.size())
+        self.hide()
+        
+        # Connect to director for skip
+        self.clicked.connect(self._on_skip_requested)
+    
+    def _on_skip_requested(self):
+        """Handle tap-to-skip."""
+        self.director.force_skip()
+        
+        # Also stop any playing audio
+        if hasattr(self.parent(), 'audio') and self.parent().audio:
+            self.parent().audio.stop_voice()
+    
+    def mousePressEvent(self, event):
+        """Catch all mouse presses and emit skip signal."""
+        self.clicked.emit()
+        event.accept()
+    
+    def resizeEvent(self, event):
+        """Stay same size as parent."""
+        if self.parent():
+            self.resize(self.parent().size())
