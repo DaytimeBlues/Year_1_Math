@@ -61,7 +61,7 @@ class GameManager(QMainWindow):
         self._wrong_attempts = 0
         self._current_item_name = None  # For VoiceBank item lookup
         self._pending_tasks: set[asyncio.Task] = set()
-        self._hint_timer: Optional[QTimer] = None
+        self._hint_timer: QTimer | None = None
         
         # User Profile (Persistence)
         from core.user_profile import StudentProfile
@@ -124,6 +124,14 @@ class GameManager(QMainWindow):
 
         self.voice_bank.stop()
         self.audio.duck_music(False)
+
+    def _compute_difficulty(self, level: int) -> int:
+        """Compute difficulty score from level index.
+        
+        Linear scaling: difficulty = level (capped at reasonable max).
+        This feeds into ProblemStrategy to determine item counts.
+        """
+        return max(0, min(level, 10))  # Cap at 10 for reasonable difficulty
     
     def _compute_difficulty(self, level: int) -> int:
         """
@@ -258,7 +266,6 @@ class GameManager(QMainWindow):
         # Celebration audio
         await self.voice_bank.play_random_async("celebration_rewards")
         
-        self.director.set_state(AppState.CELEBRATION)
         self.celebration.start(f"LEVEL {self.current_level} COMPLETE!")
         
         # 4. Wait for celebration (2.5s)
