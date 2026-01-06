@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This is a well-structured educational app for children (ages 4-6) using PyQt6 with async support. The architecture is clean with dependency injection, state management, and good separation of concerns. However, there are **critical bugs**, code quality issues, and areas needing improvement.
+This is a well-structured educational app for children (ages 4-6) using PySide6 with async support. The architecture is clean with dependency injection, state management, and good separation of concerns. However, there are **critical bugs**, code quality issues, and areas needing improvement.
 
 **Overall Assessment:** ⚠️ **Needs Fixes Before Production**
 

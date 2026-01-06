@@ -4,9 +4,9 @@ Celebration Overlay - Visual Reward System (Gemini Design)
 QPainter-based particle effects with tap-to-skip.
 Uses CelebrationFactory for variety (no immediate repeats).
 """
-from PyQt6.QtWidgets import QWidget, QLabel
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QPainter, QColor
+from PySide6.QtWidgets import QWidget, QLabel
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QPainter, QColor
 
 from ui.effects.factory import CelebrationFactory, VisualEffect
 
@@ -22,7 +22,7 @@ class CelebrationOverlay(QWidget):
     - Callback on complete
     """
     
-    finished = pyqtSignal()
+    finished = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

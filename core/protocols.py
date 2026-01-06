@@ -6,7 +6,7 @@ This allows for Dependency Injection and easy swapping of real/mock implementati
 
 from typing import Protocol, List, Dict, Any, Optional
 from enum import Enum, auto
-from PyQt6.QtCore import QObject
+from PySide6.QtCore import QObject
 
 # =============================================================================
 # DATA TYPES

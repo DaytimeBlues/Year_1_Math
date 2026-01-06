@@ -84,3 +84,26 @@ TypeError: object NoneType can't be used in 'await' expression
 2026-01-05 20:05:01 | INFO | core.voice_bank | VoiceBank indexed 190/190 phrases (durations lazy)
 2026-01-05 20:06:00 | INFO | ui.game_manager | Starting level 3 (mode=counting, difficulty=2)
 2026-01-05 20:06:11 | INFO | ui.game_manager | Starting level 9 (mode=counting, difficulty=8)
+2026-01-05 20:06:26 | INFO | ui.game_manager | Starting level 73465712 (mode=subtraction, difficulty=73465711)
+2026-01-05 20:06:27 | CRITICAL | __main__ | Unhandled exception
+Traceback (most recent call last):
+  File "C:\Users\Jihye\.gemini\antigravity\playground\sidereal-voyager\ui\premium_activity_view.py", line 473, in _play_take_away_animation
+    self.audio.play_sfx(SFX.POP) # Add subtle 'pop' sound for each!
+                        ^^^^^^^
+AttributeError: type object 'SFX' has no attribute 'POP'
+2026-01-05 20:06:29 | WARNING | __main__ | Event loop closed before cleanup could complete
+2026-01-05 20:15:12 | INFO | __main__ | Logging initialized: C:\Users\Jihye\.gemini\antigravity\playground\sidereal-voyager\logs\app.log
+2026-01-05 20:15:12 | INFO | __main__ | Math Omni starting up... (log_file=logs\app.log)
+2026-01-05 20:15:13 | INFO | core.voice_bank | VoiceBank indexed 190/190 phrases (durations lazy)
+2026-01-05 20:15:19 | INFO | ui.game_manager | Starting level 7 (mode=counting, difficulty=6)
+2026-01-05 20:15:32 | INFO | ui.game_manager | Starting level -930021776 (mode=counting, difficulty=0)
+2026-01-05 20:16:03 | INFO | ui.game_manager | Starting level 4 (mode=counting, difficulty=3)
+2026-01-05 20:16:45 | INFO | ui.game_manager | Starting level -930021776 (mode=counting, difficulty=0)
+2026-01-05 20:16:46 | INFO | root | [Director] Skip requested from TUTOR_SPEAKING
+2026-01-05 20:16:48 | INFO | root | [Director] Skip requested from CELEBRATION
+2026-01-05 20:16:55 | WARNING | __main__ | Event loop closed before cleanup could complete
+2026-01-06 19:28:37 | INFO | __main__ | Logging initialized: C:\Users\Jihye\.gemini\antigravity\playground\sidereal-voyager\logs\app.log
+2026-01-06 19:28:37 | INFO | __main__ | Math Omni starting up... (log_file=logs\app.log)
+2026-01-06 19:28:37 | INFO | core.voice_bank | VoiceBank indexed 190/190 phrases (durations lazy)
+2026-01-06 19:28:46 | INFO | ui.game_manager | Starting level 3 (mode=counting, difficulty=2)
+2026-01-06 19:28:57 | INFO | ui.game_manager | Starting level 10 (mode=counting, difficulty=9)

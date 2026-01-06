@@ -2,9 +2,9 @@
 Premium UI Utilities
 High-quality shadow effects and animations for the Sidereal Voyager UI.
 """
-from PyQt6.QtWidgets import QWidget, QGraphicsDropShadowEffect
-from PyQt6.QtCore import QPropertyAnimation, QSequentialAnimationGroup, QEasingCurve, QPoint
-from PyQt6.QtGui import QColor
+from PySide6.QtWidgets import QWidget, QGraphicsDropShadowEffect
+from PySide6.QtCore import QPropertyAnimation, QSequentialAnimationGroup, QEasingCurve, QPoint
+from PySide6.QtGui import QColor
 
 
 def add_soft_shadow(
@@ -72,7 +72,7 @@ def draw_premium_background(widget: QWidget):
     Draw the premium cream gradient background directly in a widget's paintEvent.
     Call this from an overridden paintEvent method.
     """
-    from PyQt6.QtGui import QPainter, QLinearGradient, QColor
+    from PySide6.QtGui import QPainter, QLinearGradient, QColor
     
     painter = QPainter(widget)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)

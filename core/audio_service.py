@@ -15,8 +15,8 @@ from typing import Optional, Callable
 from pathlib import Path
 from collections import OrderedDict
 
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QSoundEffect
-from PyQt6.QtCore import QUrl, QObject, QTimer
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QSoundEffect
+from PySide6.QtCore import QUrl, QObject, QTimer
 
 from core.sfx import get_sfx_path
 from config import VOLUME_SFX, VOLUME_MUSIC, VOLUME_MUSIC_DUCKED, SFX_CACHE_MAX

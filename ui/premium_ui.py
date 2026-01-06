@@ -10,9 +10,9 @@ Design: Gemini 3 Pro
 Fixes: ChatGPT 5.2 (no margin jitter, locked style, focus states)
 """
 
-from PyQt6.QtWidgets import QPushButton, QGraphicsDropShadowEffect, QWidget
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton, QGraphicsDropShadowEffect, QWidget
+from PySide6.QtGui import QColor, QFont
+from PySide6.QtCore import Qt
 
 from config import COLORS, FONT_FAMILY
 

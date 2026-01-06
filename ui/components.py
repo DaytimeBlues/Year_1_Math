@@ -1,9 +1,9 @@
 """
 Shared UI Components
 """
-from PyQt6.QtWidgets import QPushButton, QLabel, QWidget
-from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, pyqtProperty, Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PySide6.QtWidgets import QPushButton, QLabel, QWidget
+from PySide6.QtCore import QPropertyAnimation, QEasingCurve, Property, Qt, Signal
+from PySide6.QtGui import QFont
 
 class JuicyButton(QPushButton):
     """
@@ -37,7 +37,7 @@ class JuicyLabel(QLabel):
         self._base_size = size
         self._update_font()
 
-    @pyqtProperty(float)
+    @Property(float)
     def font_scale(self):
         return self._font_scale
 
@@ -69,7 +69,7 @@ class SkipOverlay(QWidget):
     interaction with underlying buttons.
     """
     
-    clicked = pyqtSignal()
+    clicked = Signal()
     
     def __init__(self, parent, director):
         super().__init__(parent)

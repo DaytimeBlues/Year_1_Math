@@ -15,9 +15,9 @@ import asyncio
 import logging
 from typing import Optional, Union, Set
 
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QMenu
-from PyQt6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QMainWindow, QStackedWidget, QMenu
+from PySide6.QtGui import QAction, QKeySequence
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,7 @@ class GameManager(QMainWindow):
         # Connect signals
         self.landing_view.domain_selected.connect(self._on_domain_selected)
         self.map_view.level_selected.connect(self._start_level)
+        self.map_view.practice_mode_selected.connect(self._start_practice)  # New signal
         self.activity_view.back_to_map.connect(self._show_map)
         self.activity_view.answer_submitted.connect(self._process_answer)
         
@@ -196,7 +197,7 @@ class GameManager(QMainWindow):
     def show_report(self, report_type: str):
         """Show report dialog."""
         print(f"[GameManager] ACTION: Opening Report View ({report_type})")
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        from PySide6.QtWidgets import QDialog, QVBoxLayout
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Progress Report - {report_type.title()}")
         dialog.setMinimumSize(900, 700)
@@ -277,6 +278,11 @@ class GameManager(QMainWindow):
             await asyncio.sleep(0.2)
         
         self.director.set_state(AppState.INPUT_ACTIVE)
+
+    def _start_practice(self, mode: str):
+        """Start a practice session with the given mode."""
+        logger.info("Starting practice mode: %s", mode)
+        self._start_level(mode)  # Delegate to _start_level which handles string modes
 
     def _start_level(self, level_or_mode: Union[int, str]):
         """Start a level or practice session."""

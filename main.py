@@ -3,7 +3,7 @@ Math Omni v2 - Gamified Learning Platform
 Entry point using qasync for async Qt operations
 
 Target: 5-year-old children (Foundation Year)
-Core Tech: PyQt6 + qasync for non-blocking TTS
+Core Tech: PySide6 + qasync for non-blocking TTS
 
 FIXES APPLIED (AI Review):
 - Safe logging config fallback (ChatGPT 5.2)
@@ -20,8 +20,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Callable
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import QTimer, Qt
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QTimer, Qt
 from qasync import QEventLoop
 
 from config import FONT_FAMILY
@@ -140,7 +140,7 @@ def main():
     app.setStyle("Fusion")
     
     # Set app font explicitly
-    from PyQt6.QtGui import QFont
+    from PySide6.QtGui import QFont
     app.setFont(QFont(FONT_FAMILY, 12))
     
     # qasync bridges Qt's event loop with asyncio

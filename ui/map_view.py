@@ -4,11 +4,11 @@ Map View - Level Selection UI
 Displays the game map with unlockable level nodes.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont
 
 from config import (
     MIN_TOUCH_TARGET, BUTTON_GAP, MAP_LEVELS_COUNT,
@@ -27,7 +27,7 @@ class MapView(QWidget):
     """
     
     # Signals
-    level_selected = pyqtSignal(int)
+    level_selected = Signal(int)
     
     def __init__(self, db):
         super().__init__()

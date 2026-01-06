@@ -1,5 +1,5 @@
 """
-Main Window - PyQt6 Split-Screen Layout
+Main Window - PySide6 Split-Screen Layout
 Provides the question display and scratchpad workspace side-by-side.
 
 PEDAGOGICAL DESIGN:
@@ -13,12 +13,12 @@ HYBRID AI ARCHITECTURE:
 - Cloud Agent (GeminiTutor): Contextual scaffolding when local detects confusion
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QFrame, QSpacerItem, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont
 import random
 import os
 

@@ -1,0 +1,266 @@
+# =============================================================================
+# ERROR LOG: Python PyQt6/PySide6 Educational App Development
+# For: Future LLM Agents working on this project
+# Project: Year 1 Math App (Math Omni v2)
+# =============================================================================
+
+project:
+  name: "Year_1_Math"
+  framework: "PySide6 (migrated from PyQt6)"
+  language: "Python 3.11"
+  target_platform: "Windows Desktop"
+  educational_goal: "Year 1 Mathematics (Australia) - Counting & Basic Operations"
+
+use_case: |
+  Gamified math learning platform for 5-6 year old children with:
+  - Adaptive difficulty based on error tracking
+  - Offline voice prompts (pre-recorded TTS)
+  - Egg economy reward system
+  - Tap-based gameplay with rage-click protection
+
+# =============================================================================
+# CRITICAL ISSUES FROM CODE REVIEW (External Analysis)
+# =============================================================================
+
+code_review_issues:
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 1: Arbitrary Code Execution via Pickle
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_001"
+    severity: 98
+    type: "Security"
+    message: "Arbitrary code execution via unsafe pickle.load on persistent profile"
+    file: "core/user_profile.py"
+    methods: ["StudentProfile.load()", "_recover_from_backup()"]
+    
+    description: |
+      pickle.load() will execute attacker-controlled opcodes during deserialization.
+      If an attacker can replace user_profile.pkl (or any file in backups/), the app
+      will execute arbitrary Python code on next launch.
+    
+    recommendation: |
+      Replace pickle persistence with JSON (or another non-executable format) and
+      explicit schema validation. If you must keep pickle for backwards compatibility:
+      cryptographically sign the blob (HMAC) and refuse to load unsigned/invalid data.
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 2: Predictable Temp Filename Attack Vector
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_002"
+    severity: 88
+    type: "Security"
+    message: "Predictable temp filename enables symlink/hardlink clobber/delete attacks"
+    file: "core/agent.py"
+    
+    description: |
+      Using a fixed filename in a world-writable temp directory
+      (_temp_audio_file = os.path.join(tempfile.gettempdir(), "math_omni_speech.mp3"))
+      allows a local attacker to pre-create a symlink/hardlink so the app overwrites
+      or deletes an arbitrary file.
+    
+    recommendation: |
+      Use tempfile.NamedTemporaryFile(delete=False) / mkstemp() to generate a unique file.
+      On Unix, consider os.open(..., O_NOFOLLOW) patterns and write to a user-private cache dir.
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 3: Missing StudentProfile.current_level
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_003"
+    severity: 86
+    type: "Logic"
+    message: "Reports feature is logically broken due to missing StudentProfile.current_level"
+    file: "core/progress_report.py"
+    methods: ["ProgressReportGenerator.generate_daily_report()", "generate_weekly_report()"]
+    
+    description: |
+      The report generator reads self.profile.current_level, but StudentProfile
+      (in core/user_profile.py) does not define current_level. This makes report
+      generation throw exceptions and breaks a user-facing feature.
+    
+    recommendation: |
+      Define a single source of truth for "current level" (derive from profile.progress[...],
+      or persist an explicit current_level field). Add a unit test.
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 4: Personal Data Leakage in Repo
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_004"
+    severity: 80
+    type: "Security"
+    message: "Personal data leakage committed into the repo (logs + absolute user paths)"
+    files: ["logs/app.log", "scripts/sync_w3_audio.py"]
+    
+    description: |
+      Shipping/hosting the repo exposes developer username, local filesystem layout,
+      and stack traces. This is both a privacy issue and a recon vector.
+    
+    recommendation: |
+      Remove logs/ from version control, add logs/ to .gitignore, and avoid checking
+      in environment-specific scripts or redact paths via env vars.
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 5: Synchronous I/O on Main Thread
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_005"
+    severity: 85
+    type: "Performance"
+    message: "Synchronous I/O on Main Thread causes UI freezes"
+    files: ["core/user_profile.py", "ui/game_manager.py"]
+    
+    description: |
+      StudentProfile.save() performs synchronous file I/O (write, backup, rename)
+      on the main UI thread. As error history grows or disk is slow, this freezes
+      the UI - critical for a children's app (rage tapping risk).
+    
+    recommendation: |
+      Offload file persistence to a background thread or use aiofiles.
+
+  # ---------------------------------------------------------------------------
+  # ISSUE 6: Practice Mode Data Pollution
+  # ---------------------------------------------------------------------------
+  - id: "REVIEW_006"
+    severity: 80
+    type: "Logic"
+    message: "Practice mode data pollutes adaptive difficulty algorithm"
+    file: "ui/game_manager.py"
+    
+    description: |
+      Errors are recorded into the in-memory profile regardless of mode.
+      While save() is skipped during practice, the in-memory object is mutated.
+      Subsequent standard play persists all practice session errors, polluting
+      the adaptive difficulty algorithm with low-stakes data.
+    
+    recommendation: |
+      Do not record errors when in practice mode, or use a transient profile copy.
+
+# =============================================================================
+# ERRORS MADE BY LLM AGENTS DURING DEVELOPMENT
+# =============================================================================
+
+llm_errors:
+
+  # ---------------------------------------------------------------------------
+  # ERROR 1: README Git URL Mismatch
+  # ---------------------------------------------------------------------------
+  - id: "ERR_001"
+    type: "Documentation Error"
+    conversation: "Current Session (Jan 6, 2026)"
+    message: "README contained wrong GitHub repository URL"
+    file: "README.md"
+    line: 23
+    
+    root_cause: |
+      The README.md contained a git clone URL for "Year_1_Math_app.git" but the
+      actual repository is named "Year_1_Math.git".
+    
+    my_thought_process: |
+      When the README was initially created, the repository name was not verified
+      against the actual remote configuration.
+    
+    solution: |
+      Fixed the URL from https://github.com/DaytimeBlues/Year_1_Math_app.git
+      to https://github.com/DaytimeBlues/Year_1_Math.git
+
+  # ---------------------------------------------------------------------------
+  # ERROR 2: Failed to Diagnose DLL Error Root Cause Initially
+  # ---------------------------------------------------------------------------
+  - id: "ERR_002"
+    type: "Diagnostic Error"
+    conversation: "Current Session (Jan 6, 2026)"
+    message: "Initially suggested reinstalling PyQt6 when issue was deeper"
+    
+    root_cause: |
+      When the user encountered "ImportError: DLL load failed while importing QtCore",
+      I first suggested reinstalling PyQt6, then downgrading to 6.5.3, then checking
+      the VC++ Redistributable. None of these worked because the actual issue was
+      a persistent system-level conflict with PyQt6's bundled Qt libraries.
+    
+    my_thought_process: |
+      I followed a standard troubleshooting escalation path:
+      1. Reinstall the package
+      2. Try a different version
+      3. Check system dependencies
+      
+      I should have tested PySide6 as an alternative sooner, since it uses
+      the official Qt for Python distribution with better DLL isolation.
+    
+    solution: |
+      Migrated the entire codebase from PyQt6 to PySide6, which resolved the issue.
+    
+    lesson: |
+      When facing persistent DLL load errors with PyQt6 on Windows:
+      1. Check if PySide6 works (quick test: `pip install PySide6; python -c "import PySide6.QtCore"`)
+      2. If PySide6 works but PyQt6 doesn't, migrate to PySide6 immediately
+      3. Don't waste time on reinstalls if the first reinstall doesn't work
+
+  # ---------------------------------------------------------------------------
+  # ERROR 3: Practice Mode Signal Bug (From Conversation History)
+  # ---------------------------------------------------------------------------
+  - id: "ERR_003"
+    type: "Logic Error"
+    conversation: "Fixing Practice Mode Flow (Dec 30, 2025 - Jan 5, 2026)"
+    message: "level_selected signal emitted practice mode strings instead of integers"
+    file: "ui/map_view.py (or similar)"
+    
+    root_cause: |
+      The `level_selected` signal was designed to emit integers (level numbers),
+      but when practice mode was added, it started emitting string identifiers
+      ("Counting", "Addition", "Subtraction") through the same signal.
+    
+    my_thought_process: |
+      I likely reused the existing signal for a new purpose without considering
+      type safety. Qt signals in Python are duck-typed, so this didn't raise
+      an immediate error but caused downstream logic failures.
+    
+    solution: |
+      Created a separate `practice_mode_selected` signal for practice mode selection
+      and connected it separately in GameManager. Added a `_start_practice` method.
+    
+    lesson: |
+      Don't overload signals with different types. Create dedicated signals for
+      distinct purposes even if they seem similar.
+
+# =============================================================================
+# LESSONS FOR FUTURE LLM AGENTS
+# =============================================================================
+
+lessons:
+
+  - category: "PyQt6 vs PySide6"
+    lesson: |
+      If encountering DLL load errors on Windows with PyQt6 that persist after reinstall:
+      1. Test PySide6 first (quick import test)
+      2. Migration is straightforward: PyQt6 -> PySide6, pyqtSignal -> Signal
+      3. PySide6 is the official Qt for Python binding and often more reliable
+
+  - category: "Profile Serialization"
+    lesson: |
+      NEVER use pickle for user data persistence. Always use JSON with explicit
+      to_dict()/from_dict() methods. This prevents arbitrary code execution attacks.
+
+  - category: "Async I/O in Qt Apps"
+    lesson: |
+      Any file I/O in a Qt application should be offloaded from the main thread.
+      Use qasync + aiofiles, or QThread + signals for background file operations.
+
+  - category: "Signal Type Safety"
+    lesson: |
+      Don't reuse Qt signals for different purposes with different types.
+      Create separate, well-typed signals: level_selected(int) vs practice_mode_selected(str)
+
+  - category: "Git Repository Verification"
+    lesson: |
+      Always verify git remote URLs with `git remote -v` before documenting them.
+      Never assume the repository name matches the folder name.
+
+# =============================================================================
+# RECOMMENDATIONS FOR NEXT LLM
+# =============================================================================
+
+recommendations:
+  - "Fix REVIEW_001 first - replace pickle with JSON to eliminate code execution risk"
+  - "Add logs/ to .gitignore and remove from version control (REVIEW_004)"
+  - "Run `python main.py` to verify app launches before making changes"
+  - "Test profile save/load after any changes to core/user_profile.py"
+  - "Use `git diff` before committing to catch hardcoded paths"

@@ -1,5 +1,5 @@
 """
-Scratchpad Canvas - PyQt6 Implementation with Native Stylus Support
+Scratchpad Canvas - PySide6 Implementation with Native Stylus Support
 The child's drawing workspace with Windows Ink integration.
 
 PEDAGOGICAL PURPOSE:
@@ -8,15 +8,15 @@ they can work out problems using their natural drawing instincts. Unlike
 multiple-choice tests that only reveal final answers, the scratchpad
 captures the PROCESS of mathematical thinking.
 
-TECHNICAL ADVANTAGE OF PyQt6:
+TECHNICAL ADVANTAGE OF PySide6:
 QTabletEvent provides native access to stylus pressure, tilt, and precise
 positioning—critical for palm rejection and a natural drawing experience
 on the HP Omni.
 """
 
-from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QTimer
-from PyQt6.QtGui import QPainter, QPen, QColor, QPainterPath, QTabletEvent
+from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Qt, QPointF, Signal, QTimer
+from PySide6.QtGui import QPainter, QPen, QColor, QPainterPath, QTabletEvent
 from dataclasses import dataclass, field
 from typing import List, Optional
 import sys
@@ -102,10 +102,10 @@ class Scratchpad(QWidget):
     - barrel_button_released: Emitted when stylus barrel button is released
     """
     
-    stroke_completed = pyqtSignal()  # Notify parent when drawing occurs
-    idle_timeout = pyqtSignal()      # Notify parent when child pauses too long
-    barrel_button_pressed = pyqtSignal()   # Push-to-talk start
-    barrel_button_released = pyqtSignal()  # Push-to-talk end
+    stroke_completed = Signal()  # Notify parent when drawing occurs
+    idle_timeout = Signal()      # Notify parent when child pauses too long
+    barrel_button_pressed = Signal()   # Push-to-talk start
+    barrel_button_released = Signal()  # Push-to-talk end
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -389,7 +389,7 @@ class Scratchpad(QWidget):
         Returns:
             Raw PNG bytes of the widget contents.
         """
-        from PyQt6.QtCore import QBuffer, QIODevice
+        from PySide6.QtCore import QBuffer, QIODevice
         
         pixmap = self.grab()
         buffer = QBuffer()

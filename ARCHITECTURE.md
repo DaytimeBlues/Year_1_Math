@@ -26,8 +26,8 @@ Entry point using qasync for async Qt operations
 """
 import sys
 import asyncio
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import QTimer, Qt
+from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QTimer, Qt
 from qasync import QEventLoop
 from config import FONT_FAMILY, COLORS, MIN_TOUCH_TARGET
 from core.database import DatabaseService
@@ -116,8 +116,8 @@ import os
 import hashlib
 import asyncio
 import edge_tts
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QUrl, QObject
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QUrl, QObject
 
 CACHE_DIR = os.path.join("cache", "audio")
 
@@ -227,7 +227,7 @@ def safe_create_task(coro):
 Game Manager - Orchestrates the Gamified Learning Flow
 """
 import asyncio
-from PyQt6.QtWidgets import QMainWindow, QStackedWidget
+from PySide6.QtWidgets import QMainWindow, QStackedWidget
 from config import MAP_LEVELS_COUNT, REWARD_CORRECT
 from ui.map_view import MapView
 from ui.activity_view import ActivityView
@@ -310,8 +310,16 @@ class GameManager(QMainWindow):
 1.  **Cross-Platform Audio:** Done (QtMultimedia).
 2.  **Async Safety:** Done (`safe_create_task`).
 3.  **Encapsulation/Arch:** Done.
+4.  **PySide6 Migration:** Done (replaced PyQt6).
 
-**Next Steps (Phase 2):**
-*   Service protocols.
-*   Cache eviction logic.
-*   WCAG Color Contrast verification.
+**Next Steps (Phase 5 - Code Review & Bug Fixes):**
+*   Replace `pickle` with JSON serialization (Security: S1).
+*   Fix predictable temp filename (Security: S2).
+*   Add `current_level` property to StudentProfile (Logic: L3).
+*   Fix practice mode data pollution (Logic: L4).
+
+---
+
+*See [AI.md](AI.md) for institutional rules and [ERROR_LOG_FOR_LLM.yaml](ERROR_LOG_FOR_LLM.yaml) for detailed analysis.*
+
+*Last Updated: 2026-01-06*

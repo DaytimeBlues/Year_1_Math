@@ -2,12 +2,12 @@
 Progress Report UI Component
 Display student progress reports in a child-friendly, visual format
 """
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QTabWidget, QScrollArea, QFrame,
                              QTableWidget, QTableWidgetItem, QHeaderView,
                              QTextEdit, QGridLayout, QGroupBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QColor, QPainter, QPen, QBrush, QLinearGradient
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QFont, QColor, QPainter, QPen, QBrush, QLinearGradient
 import json
 from datetime import datetime
 from typing import Dict, List
@@ -21,7 +21,7 @@ print(f"[progress_report_view.py] ENTRY: Initializing Progress Report View")
 class ProgressReportView(QWidget):
     """Main widget for displaying progress reports"""
     
-    report_generated = pyqtSignal(dict)  # Signal when report is generated
+    report_generated = Signal(dict)  # Signal when report is generated
     
     def __init__(self, profile, parent=None):
         print(f"[ProgressReportView.__init__] ENTRY: profile={profile.name if profile else 'None'}")
@@ -193,14 +193,14 @@ class ProgressReportView(QWidget):
         try:
             report_type = self.current_report.get('report_type', 'unknown')
             filepath = self.report_generator.save_report(self.current_report, report_type)
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
             QMessageBox.information(self, "Report Saved", f"Report saved to:\n{filepath}")
         except Exception as e: print(f"[ProgressReportView] ERROR: {e}")
     
     def print_report(self):
         """Print the current report (simulated)"""
         if not self.current_report: return
-        from PyQt6.QtWidgets import QMessageBox
+        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "Print", "Print functionality ready. Please connect a printer.")
 
 class SummaryTab(QWidget):

@@ -17,8 +17,8 @@ import logging
 from pathlib import Path
 from typing import List, Tuple, Optional
 
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QUrl
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QUrl
 
 
 logger = logging.getLogger(__name__)

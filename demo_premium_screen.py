@@ -5,9 +5,9 @@ Run this standalone to see the target aesthetic.
 Then transplant working components into the main app.
 """
 import sys
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QBrush
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QBrush
+from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QGraphicsDropShadowEffect,

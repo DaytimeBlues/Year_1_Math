@@ -31,3 +31,6 @@ Thumbs.db
 # Project specific
 data/
 cache/
+logs/
+*.pkl
+user_profile.pkl

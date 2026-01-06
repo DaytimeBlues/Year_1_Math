@@ -8,8 +8,8 @@ import random
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QPolygonF
-from PyQt6.QtCore import QPointF, QRect, Qt
+from PySide6.QtGui import QColor, QPainter, QBrush, QPen, QPolygonF
+from PySide6.QtCore import QPointF, QRect, Qt
 
 
 # --- Data Structures ---

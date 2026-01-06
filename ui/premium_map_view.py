@@ -8,12 +8,12 @@ Claude's Implementation matching reference design:
 - Generous whitespace
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGraphicsDropShadowEffect, QFrame, QGridLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QFont, QColor, QIcon
 from ui.practice_dialog import PracticeDialog
 
 from config import (
@@ -141,7 +141,8 @@ class PremiumMapView(QWidget):
     └────────────────────────────────────────┘
     """
     
-    level_selected = pyqtSignal(int)
+    level_selected = Signal(int)
+    practice_mode_selected = Signal(str)  # Separate signal for practice mode
     
     def __init__(self, db):
         super().__init__()
@@ -282,8 +283,8 @@ class PremiumMapView(QWidget):
         dialog = PracticeDialog(self)
         if dialog.exec():
             print(f"[PremiumMapView] ACTION: Starting practice mode: {dialog.selected_mode}")
-            # We emit the mode string instead of a level int
-            self.level_selected.emit(dialog.selected_mode)
+            # Emit practice mode via separate signal
+            self.practice_mode_selected.emit(dialog.selected_mode)
             
     async def refresh(self, egg_count: int):
         """Update the map with current progress."""

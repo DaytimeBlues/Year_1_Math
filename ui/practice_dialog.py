@@ -3,11 +3,11 @@ Practice Dialog - Training Camp Configuration
 Allows selection of specific practice modes without affecting level progression.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont, QColor, QIcon
 
 from ui.design_tokens import (
     COLORS, STYLES, FONT_FAMILY, FONT_SIZE_HEADING, FONT_SIZE_BODY

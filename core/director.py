@@ -12,7 +12,7 @@ import logging
 from enum import Enum, auto
 from typing import Dict, List
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PySide6.QtCore import QObject, Signal, Slot, QTimer
 
 
 class AppState(Enum):
@@ -37,7 +37,7 @@ class Director(QObject):
     4. Audio ducking coordination
     """
     
-    state_changed = pyqtSignal(AppState)
+    state_changed = Signal(AppState)
     
     # Valid state transitions (Z.ai fix #1)
     # Updated: Added TUTOR_SPEAKING to IDLE transitions for welcome/announcements
@@ -67,7 +67,7 @@ class Director(QObject):
     def current_state(self) -> AppState:
         return self._current_state
 
-    @pyqtSlot(AppState)
+    @Slot(AppState)
     def set_state(self, new_state: AppState):
         """
         Transition to a new state with validation.

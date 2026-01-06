@@ -11,15 +11,15 @@ Claude's Implementation:
 Reference: The uploaded target design screenshot
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGraphicsDropShadowEffect, QFrame, QSizePolicy
 )
-from PyQt6.QtCore import (
-    Qt, QTimer, pyqtSignal, QPropertyAnimation, 
+from PySide6.QtCore import (
+    Qt, QTimer, Signal, QPropertyAnimation, 
     QEasingCurve, QParallelAnimationGroup, QPoint, QRect
 )
-from PyQt6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor
 
 from config import (
     MIN_TOUCH_TARGET, BUTTON_GAP, DEBOUNCE_DELAY_MS,
@@ -209,8 +209,8 @@ class PremiumActivityView(QWidget):
     """
     
     # signal(is_correct, chosen, target)
-    answer_submitted = pyqtSignal(bool, int, int)
-    back_to_map = pyqtSignal()
+    answer_submitted = Signal(bool, int, int)
+    back_to_map = Signal()
     
     def __init__(self, director, audio_service=None):
         super().__init__()

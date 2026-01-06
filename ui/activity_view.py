@@ -5,11 +5,11 @@ Displays the problem, answer options, and handles input with debounce.
 Uses JuicyButtons for tactile feedback (SFX).
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QFont
 
 from config import (
     MIN_TOUCH_TARGET, BUTTON_GAP, DEBOUNCE_DELAY_MS,
@@ -32,8 +32,8 @@ class ActivityView(QWidget):
     """
     
     # Signals
-    answer_submitted = pyqtSignal(bool)  # True = correct
-    back_to_map = pyqtSignal()
+    answer_submitted = Signal(bool)  # True = correct
+    back_to_map = Signal()
     
     
     def __init__(self, director, audio_service=None):

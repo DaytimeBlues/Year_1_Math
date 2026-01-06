@@ -3,15 +3,15 @@ Year 1 Curriculum Landing Page - ACARA v9.0 Aligned
 Merged Edition: High-Fidelity UI (StudioAI) + Performance Optimizations (Z.ai)
 """
 from typing import Dict, Optional
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
     QGridLayout, QProgressBar, QSizePolicy
 )
-from PyQt6.QtCore import (
-    Qt, pyqtSignal, QPropertyAnimation, QEasingCurve,
+from PySide6.QtCore import (
+    Qt, Signal, QPropertyAnimation, QEasingCurve,
     QSize
 )
-from PyQt6.QtGui import QFont, QColor, QPainter, QLinearGradient, QPixmap
+from PySide6.QtGui import QFont, QColor, QPainter, QLinearGradient, QPixmap
 from config import (
     FONT_FAMILY, COLORS, BUTTON_GAP
 )
@@ -78,7 +78,7 @@ class DomainCard(QFrame):
     Interactive domain card with progress indicator and elastic hover animation.
     """
     
-    clicked = pyqtSignal(str)  # Emits domain key
+    clicked = Signal(str)  # Emits domain key
     _icon_cache: Dict[str, QPixmap] = {}
 
     @staticmethod
@@ -203,9 +203,8 @@ class DomainCard(QFrame):
         self.title_label.setStyleSheet(f"color: {self.config['color_secondary']}; background: transparent;")
     
     def _setup_animations(self):
-        self._hover_animation = QPropertyAnimation(self, b"geometry")
-        self._hover_animation.setDuration(200)
-        self._hover_animation.setEasingCurve(QEasingCurve.Type.OutElastic)
+        # Removed jittery geometry animation - using shadow-only hover effect
+        pass
     
     def set_progress(self, value: int):
         self._progress = max(0, min(100, value))
@@ -215,32 +214,14 @@ class DomainCard(QFrame):
     def enterEvent(self, event):
         super().enterEvent(event)
         self._hovered = True
-        if self._original_geometry is None:
-            self._original_geometry = self.geometry()
-        
-        current = self.geometry()
-        expanded = current.adjusted(-6, -6, 6, 6)
-        
-        self._hover_animation.stop()
-        self._hover_animation.setStartValue(current)
-        self._hover_animation.setEndValue(expanded)
-        self._hover_animation.start()
-        
-        # Intensify shadow
-        add_soft_shadow(self, blur=35, offset_y=15, opacity=45)
+        # Smooth shadow intensify only - no geometry changes to avoid jitter
+        add_soft_shadow(self, blur=35, offset_y=12, opacity=50)
     
     def leaveEvent(self, event):
         super().leaveEvent(event)
         self._hovered = False
-        if self._original_geometry:
-            current = self.geometry()
-            self._hover_animation.stop()
-            self._hover_animation.setStartValue(current)
-            self._hover_animation.setEndValue(self._original_geometry)
-            self._hover_animation.start()
-        
-        # Reset shadow
-        add_soft_shadow(self, blur=25, offset_y=10, opacity=35)
+        # Smooth shadow reset only
+        add_soft_shadow(self, blur=25, offset_y=8, opacity=35)
     
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -258,7 +239,7 @@ class LandingPageView(QWidget):
     """
     Year 1 Curriculum Landing Page - Main Navigation Hub.
     """
-    domain_selected = pyqtSignal(str)
+    domain_selected = Signal(str)
     
     def __init__(self, db=None, parent=None):
         super().__init__(parent)

@@ -1,9 +1,9 @@
 import logging
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QGridLayout, QLabel, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
-from PyQt6.QtGui import QFont, QPainter, QColor, QPixmap, QPen
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
+from PySide6.QtGui import QFont, QPainter, QColor, QPixmap, QPen
 
 # --- VERBOSE LOGGING GOVERNANCE ---
 # Narrative style for self-diagnosis

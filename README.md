@@ -12,7 +12,7 @@ A gamified math learning platform for Year 1 children (ages 5-6), aligned with A
 
 ## Tech Stack
 
-- **UI Framework:** PyQt6 + qasync
+- **UI Framework:** PySide6 + qasync
 - **Database:** SQLite (aiosqlite)
 - **Audio:** Offline voice bank (WAV/MP3)
 - **Target Platform:** Windows
@@ -20,8 +20,8 @@ A gamified math learning platform for Year 1 children (ages 5-6), aligned with A
 ## Installation
 
 ```bash
-git clone https://github.com/DaytimeBlues/Year_1_Math_app.git
-cd Year_1_Math_app
+git clone https://github.com/DaytimeBlues/Year_1_Math.git
+cd Year_1_Math
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
@@ -38,6 +38,18 @@ DatabaseService + AudioService + ProblemFactory
 VoiceBank (offline audio) + Director (state machine)
 ```
 
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| [AI.md](AI.md) | Institutional memory - rules for AI agents |
+| [PROJECT.md](PROJECT.md) | Project constitution and design decisions |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical reference with code samples |
+| [ERROR_LOG_FOR_LLM.yaml](ERROR_LOG_FOR_LLM.yaml) | Detailed error analysis for debugging |
+
 ## License
 
 MIT - See [LICENSE](LICENSE) for details.
+
+---
+*Last Updated: 2026-01-06*

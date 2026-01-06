@@ -8,7 +8,7 @@
 ---
 
 ## Tech Stack
-- **UI Framework:** PyQt6 (desktop app, not web)
+- **UI Framework:** PySide6 (desktop app, not web)
 - **Async Bridge:** qasync (Qt + asyncio integration)
 - **Database:** SQLite via aiosqlite
 - **TTS:** VoiceBank (177 pre-recorded WAV clips) - NO dynamic TTS
@@ -77,7 +77,7 @@ async with self._write_lock:
 | Mistake | What Went Wrong | Correct Approach |
 |---------|-----------------|------------------|
 | `asyncio.run()` in fixtures | Creates new event loop each call, breaks connection state | Use shared `event_loop` fixture |
-| Mixing sync/async in PyQt6 | Crashes without qasync bridge | Always use qasync, never raw asyncio in UI code |
+| Mixing sync/async in PySide6 | Crashes without qasync bridge | Always use qasync, never raw asyncio in UI code |
 | Cloud AI (Gemini Tutor) in core loop | Violated local-first principle | Removed by design decision |
 | Print statements for debugging | Not captured in log files | Use `logger.info()` for all output |
 | Hardcoded 5s sleep for audio | Clips have variable duration | Use `mutagen` or WAV header for duration |
@@ -125,8 +125,16 @@ When consulting external LLMs (DeepSeek, Z.ai, ChatGPT, Codex, Gemini):
 
 ## Current Phase
 **Phase 4:** Year 1 Curriculum Landing Page (Complete)  
+**Phase 5:** Code Review & Bug Fixes (In Progress)  
 **Next:** Testing & Polish
 
 ---
 
-*Last Updated: 2026-01-05*
+## Related Documentation
+
+- **[AI.md](AI.md)** — Institutional memory (rules for AI agents)
+- **[ERROR_LOG_FOR_LLM.yaml](ERROR_LOG_FOR_LLM.yaml)** — Detailed error analysis
+
+---
+
+*Last Updated: 2026-01-06*

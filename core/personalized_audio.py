@@ -5,8 +5,8 @@ Faster and more reliable than runtime TTS for common phrases.
 import os
 import random
 from pathlib import Path
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QUrl
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtCore import QUrl
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets" / "audio"
 

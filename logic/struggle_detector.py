@@ -12,7 +12,7 @@ Heuristic Rules:
 import time
 import math
 from typing import List
-from PyQt6.QtCore import QPointF, QRectF
+from PySide6.QtCore import QPointF, QRectF
 
 class StruggleState:
     NORMAL = "normal"
