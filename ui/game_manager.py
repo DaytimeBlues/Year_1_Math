@@ -395,7 +395,7 @@ class GameManager(QMainWindow):
         # Celebration audio
         await self.voice_bank.play_random_async("celebration_rewards")
         
-        # Start celebration animation (state already set above)
+        # Start celebration animation (state set on line 389)
         msg = f"LEVEL {self.current_level} COMPLETE!" if not self.is_practice_mode else "PRACTICE COMPLETE!"
         self.celebration.start(msg)
         

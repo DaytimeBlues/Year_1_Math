@@ -232,7 +232,8 @@ class VoiceBank:
         Code Review Fix: Added cleanup method for proper resource management.
         """
         self.stop()
-        self._player.setSource(QUrl())
+        # Clear media source explicitly
+        self._player.setSource(QUrl(''))
         # Qt will handle deletion via parent chain
 
 
