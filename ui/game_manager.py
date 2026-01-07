@@ -196,7 +196,7 @@ class GameManager(QMainWindow):
 
     def show_report(self, report_type: str):
         """Show report dialog."""
-        print(f"[GameManager] ACTION: Opening Report View ({report_type})")
+        logger.info("Opening Report View: %s", report_type)
         from PySide6.QtWidgets import QDialog, QVBoxLayout
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Progress Report - {report_type.title()}")
@@ -219,7 +219,7 @@ class GameManager(QMainWindow):
         Handle domain selection from Landing Page.
         Maps curriculum domains to math modes and shows the map view.
         """
-        print(f"[GameManager] ACTION: Domain selected: {domain_key}")
+        logger.info("Domain selected: %s", domain_key)
         
         # 1. Play 'Mission Start' sequence (Sidereal Voyager Edition)
         import random
@@ -369,7 +369,7 @@ class GameManager(QMainWindow):
     async def _handle_success(self):
         """Async success handler - update economy, progress, audio."""
         if self.is_practice_mode:
-            print(f"[GameManager] SUCCESS: Practice complete. Skipping economy updates.")
+            logger.info("Practice mode complete - skipping economy updates")
             self.activity_view.show_reward(0, self.current_eggs)
         else:
             # 1. Economy

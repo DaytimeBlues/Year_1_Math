@@ -13,10 +13,13 @@ DeepSeek Security Fixes Applied:
 import pickle
 import os
 import shutil
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Profile storage path
 PROFILE_DIR = Path(__file__).parent.parent
@@ -120,11 +123,11 @@ class StudentProfile:
             
             # 3. Atomic replace (safe even on crash)
             os.replace(temp_path, PROFILE_PATH)
-            print(f"[Profile] Saved successfully to {PROFILE_PATH}")
+            logger.info("Profile saved successfully to %s", PROFILE_PATH)
             return True
             
         except (pickle.PickleError, OSError) as e:
-            print(f"[Profile] CRITICAL: Save failed - {e}")
+            logger.error("Profile save failed: %s", e)
             # Clean up temp file if it exists
             if temp_path.exists():
                 temp_path.unlink()
@@ -143,7 +146,7 @@ class StudentProfile:
             for old_backup in backups[:-5]:
                 old_backup.unlink()
         except OSError as e:
-            print(f"[Profile] Backup warning: {e}")
+            logger.warning("Profile backup failed: %s", e)
 
     @classmethod
     def load(cls) -> 'StudentProfile':
@@ -153,10 +156,10 @@ class StudentProfile:
                 with open(PROFILE_PATH, 'rb') as f:
                     return pickle.load(f)
             except (pickle.UnpicklingError, EOFError) as e:
-                print(f"[Profile] Corrupted file, attempting backup recovery: {e}")
+                logger.warning("Corrupted profile file, attempting backup recovery: %s", e)
                 return cls._recover_from_backup()
             except Exception as e:
-                print(f"[Profile] Load failed, creating new: {e}")
+                logger.warning("Profile load failed, creating new: %s", e)
         return cls()
     
     @classmethod
@@ -169,10 +172,10 @@ class StudentProfile:
         for backup in backups:
             try:
                 with open(backup, 'rb') as f:
-                    print(f"[Profile] Recovered from backup: {backup.name}")
+                    logger.info("Recovered profile from backup: %s", backup.name)
                     return pickle.load(f)
             except Exception:
                 continue
         
-        print("[Profile] No valid backups found, starting fresh")
+        logger.info("No valid backups found, starting fresh profile")
         return cls()
